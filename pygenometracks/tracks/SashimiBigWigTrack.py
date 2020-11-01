@@ -12,13 +12,13 @@ from tqdm import tqdm
 
 Path = mpath.Path
 
-DEFAULT_LINKS_COLOR = 'red'
+DEFAULT_LINKS_COLOR = 'blue'
 HUGE_NUMBER = 1e15  # Which should be above any chromosome size
 
 DEFAULT_BIGWIG_COLOR = '#33a02c'
 
 
-class sashimiBigWigTrack(GenomeTrack):
+class SashimiBigWigTrack(GenomeTrack):
     SUPPORTED_ENDINGS = ['.bw', '.bigwig', ".sashimi"]
     TRACK_TYPE = 'sashimiBigWig'
     OPTIONS_TXT = GenomeTrack.OPTIONS_TXT + f"""
@@ -106,7 +106,7 @@ file_type = {TRACK_TYPE}
                            'region': None,  # Cannot be set manually but is set by tracksClass
                            'ylim': None,
                            'use_middle': False,
-                           'scale_link_height': 3}
+                           'scale_link_height': 0.5}
     NECESSARY_PROPERTIES = ['bw_file', 'link_file']
     SYNONYMOUS_PROPERTIES = {'max_value': {'auto': None},
                              'min_value': {'auto': None}}
@@ -131,6 +131,7 @@ file_type = {TRACK_TYPE}
                         'alpha': [0, 1],
                         'height': [0, np.inf],
                         'fontsize': [0, np.inf],
+                        'line_width': [0, np.inf],
                         'scale_link_height': [0, np.inf]}
     INTEGER_PROPERTIES = {'number_of_bins': [1, np.inf]}
     # The color can only be a color
@@ -149,8 +150,8 @@ file_type = {TRACK_TYPE}
                 self.bw2 = pyBigWig.open(self.properties['second_file'])
 
     def set_properties_defaults(self):
-        super(sashimiBigWigTrack, self).set_properties_defaults()
-        super(sashimiBigWigTrack, self).process_type_for_coverage_track()
+        super(SashimiBigWigTrack, self).set_properties_defaults()
+        super(SashimiBigWigTrack, self).process_type_for_coverage_track()
         self.process_color('bw_color')
         self.process_color('link_color')
         if self.properties['negative_color'] is None:
@@ -347,46 +348,100 @@ file_type = {TRACK_TYPE}
             if self.properties['line_width'] is not None:
                 self.line_width = float(self.properties['line_width'])
             else:
-                self.line_width = 3 * interval.data[4]
+                self.line_width = 3 * abs(interval.data[4])
             
-            self.plot_arcs(ax, interval, idx, score_start, score_end)
+            self.plot_bezier(ax, interval, idx, score_start, score_end)
             count += 1
         
         # the arc height is equal to the radius, the track height is the largest
         # radius plotted plus an small increase to avoid cropping of the arcs
         # this height might be removed
-        self.neg_height *= 1.5
+        self.neg_height *= 1.1
+        self.max_height *= 1.1
         self.log.debug(f"{count} were links plotted")
-        
-        if self.properties['min_value'] == None:
-            ymin = self.neg_height
-        else:
-            ymin = min(self.properties['min_value'], self.neg_height)
         
         plot_ymin, plot_ymax = ax.get_ylim()
 
-        if self.properties['max_value'] == None:
-            ymax_new = plot_ymax
+        if self.properties['min_value'] == None:
+            ymin = min(plot_ymin, self.neg_height)
         else:
-            ymax_new = max(self.properties['max_value'], plot_ymax)
+            ymin = min(plot_ymin, self.properties['min_value'], self.neg_height)
+
+        if self.properties['max_value'] == None:
+            ymax = max(plot_ymax, self.max_height)
+        else:
+            ymax = max(plot_ymax, self.properties['max_value'], self.max_height)
         
-        ymin_new = min(plot_ymin, ymin)
-        
-        ymax_new = transform(np.array([ymax_new]), self.properties['transform'],
+        ymax = transform(np.array([ymax]), self.properties['transform'],
                          self.properties['log_pseudocount'],
                          'ymax')[0]
 
-        ymin_new = transform(np.array([ymin_new]), self.properties['transform'],
+        ymin = transform(np.array([ymin]), self.properties['transform'],
                          self.properties['log_pseudocount'],
                          'ymin')[0]
 
         if self.properties['orientation'] == 'inverted':
-            ax.set_ylim(ymax_new, ymin_new)
+            ax.set_ylim(ymax, ymin)
         else:
-            ax.set_ylim(ymin_new, ymax_new)
+            ax.set_ylim(ymin, ymax)
 
         return ax
     
+    def plot_bezier(self, ax, interval, idx, start_height, end_height):
+        def cubic_bezier(pts, t):
+            b_x = (1 - t) ** 3 * pts[0][0] + 3 * t * (1 - t) ** 2 * pts[1][0] + 3 * t ** 2 * (1 - t) * pts[2][0] + t ** 3 * pts[3][0]
+            b_y = (1 - t) ** 3 * pts[0][1] + 3 * t * (1 - t) ** 2 * pts[1][1] + 3 * t ** 2 * (1 - t) * pts[2][1] + t ** 3 * pts[3][1]
+            return((b_x, b_y))
+
+        width = (interval.end - interval.begin)
+        if self.properties['scale_link_height'] == None:
+            scale_link_height = 0.5
+        
+        height = np.sqrt(width) * self.properties['scale_link_height']
+        if self.colormap:
+            # translate score field
+            # into a color
+            rgb = self.colormap.to_rgba(interval.data[4])
+        else:
+            rgb = self.properties['link_color']
+
+        # Plot below x-axis
+        if idx % 3 != 0:
+            pts = [(interval.begin, 0), (interval.begin, -height), (interval.end, -height), (interval.end, 0)]
+            midpt = cubic_bezier(pts, 0.5)
+            minpt = min([cubic_bezier(pts, x)[1] for x in np.arange(0, 1, 0.05)])
+            if minpt < self.neg_height:
+                self.neg_height = minpt
+            
+            pp1 = mpatches.PathPatch(Path(pts, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
+                    fc="none", ec=self.properties['link_color'], lw=self.line_width, ls=self.properties['line_style'])
+            ax.add_patch(pp1)
+            ax.text(midpt[0], midpt[1], round(interval.data[4], 3),
+            fontsize=self.properties['fontsize'], horizontalalignment='center',
+            verticalalignment='center',
+            bbox=dict(facecolor='white', edgecolor='none', pad=0))
+        # Plot above 
+        else:
+            pts = [
+                (interval.begin, start_height),
+                (interval.begin, height + start_height),
+                (interval.end, height + end_height),
+                (interval.end, end_height)
+            ]
+            
+            midpt = cubic_bezier(pts, 0.5)
+            maxpt = max([cubic_bezier(pts, x)[1] for x in np.arange(0, 1, 0.05)])
+            if maxpt > self.max_height:
+                self.max_height = maxpt
+
+            pp1 = mpatches.PathPatch(Path(pts, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
+                    fc="none", ec=self.properties['link_color'], lw=self.line_width, ls=self.properties['line_style'])
+            ax.add_patch(pp1)
+            ax.text(midpt[0], midpt[1], round(interval.data[4], 3),
+            fontsize=self.properties['fontsize'], horizontalalignment='center',
+            verticalalignment='center',
+            bbox=dict(facecolor='white', edgecolor='none', pad=0))
+
     # This y axis does not show the negative part, which is only Sashimi links
     def plot_y_axis(self, ax, plot_axis, transform='no', log_pseudocount=0,
                     y_axis='tranformed', only_at_ticks=False):
@@ -540,61 +595,6 @@ file_type = {TRACK_TYPE}
         ax.set_xlim(0, 1)
         ax.patch.set_visible(False)
 
-    def plot_arcs(self, ax, interval, idx, start_height, end_height):
-        def cubic_bezier(pts, t):
-            b_x = (1 - t) ** 3 * pts[0][0] + 3 * t * (1 - t) ** 2 * pts[1][0] + 3 * t ** 2 * (1 - t) * pts[2][0] + t ** 3 * pts[3][0]
-            b_y = (1 - t) ** 3 * pts[0][1] + 3 * t * (1 - t) ** 2 * pts[1][1] + 3 * t ** 2 * (1 - t) * pts[2][1] + t ** 3 * pts[3][1]
-            return((b_x, b_y))
-
-        width = (interval.end - interval.begin)
-        if self.properties['scale_link_height'] == None:
-            scale_link_height = 2
-        
-        height = width * self.properties['scale_link_height']
-        if self.colormap:
-            # translate score field
-            # into a color
-            rgb = self.colormap.to_rgba(interval.data[4])
-        else:
-            rgb = self.properties['link_color']
-
-        # Plot below x-axis
-        if idx % 3 != 0:
-            pts = [(interval.begin, 0), (interval.begin, -height), (interval.end, -height), (interval.end, 0)]
-            midpt = cubic_bezier(pts, 0.5)
-            minpt = min([cubic_bezier(pts, x)[1] for x in np.arange(0, 1, 0.05)])
-            if minpt < self.neg_height:
-                self.neg_height = minpt
-            
-            pp1 = mpatches.PathPatch(Path(pts, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
-                    fc="none", ec=self.properties['link_color'], lw=self.line_width, ls=self.properties['line_style'])
-            ax.add_patch(pp1)
-            ax.text(midpt[0], midpt[1], round(interval.data[4], 3),
-            fontsize=self.properties['fontsize'], horizontalalignment='center',
-            verticalalignment='center',
-            bbox=dict(facecolor='white', edgecolor='none', pad=0))
-        # Plot above 
-        else:
-            pts = [
-                (interval.begin, start_height),
-                (interval.begin, height + start_height),
-                (interval.end, height + end_height),
-                (interval.end, end_height)
-            ]
-            
-            midpt = cubic_bezier(pts, 0.5)
-            maxpt = max([cubic_bezier(pts, x)[1] for x in np.arange(0, 1, 0.05)])
-            if maxpt > self.max_height:
-                self.max_height = maxpt
-
-            pp1 = mpatches.PathPatch(Path(pts, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
-                    fc="none", ec=self.properties['link_color'], lw=self.line_width, ls=self.properties['line_style'])
-            ax.add_patch(pp1)
-            ax.text(midpt[0], midpt[1], round(interval.data[4], 3),
-            fontsize=self.properties['fontsize'], horizontalalignment='center',
-            verticalalignment='center',
-            bbox=dict(facecolor='white', edgecolor='none', pad=0))
-
     def process_link_file(self, plot_regions):
         # the file format expected is similar to file format of links in
         # circos:
@@ -614,8 +614,8 @@ file_type = {TRACK_TYPE}
         interval_tree = {}
         line_number = 0
         has_score = True
-        max_score = float('-inf')
-        min_score = float('inf')
+        max_score = float(0)
+        min_score = float(0)
         file_h = opener(file_to_open)
         for line in tqdm(file_h.readlines()):
             line_number += 1
