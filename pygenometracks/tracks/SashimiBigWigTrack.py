@@ -106,7 +106,8 @@ file_type = {TRACK_TYPE}
                            'region': None,  # Cannot be set manually but is set by tracksClass
                            'ylim': None,
                            'use_middle': False,
-                           'scale_link_height': 0.5}
+                           'scale_link_height': 0.5,
+                           'scale_line_width': 2}
     NECESSARY_PROPERTIES = ['bw_file', 'link_file']
     SYNONYMOUS_PROPERTIES = {'max_value': {'auto': None},
                              'min_value': {'auto': None}}
@@ -132,7 +133,8 @@ file_type = {TRACK_TYPE}
                         'height': [0, np.inf],
                         'fontsize': [0, np.inf],
                         'line_width': [0, np.inf],
-                        'scale_link_height': [0, np.inf]}
+                        'scale_link_height': [0, np.inf],
+                        'scale_line_width': [0, np.inf]}
     INTEGER_PROPERTIES = {'number_of_bins': [1, np.inf]}
     # The color can only be a color
     # negative_color can only be a color or None
@@ -171,7 +173,7 @@ file_type = {TRACK_TYPE}
                 self.properties['y_axis_values'] = 'transformed'
         
         #FROM LINK
-        self.max_height = None
+        self.pos_height = None
         self.neg_height = None
         self.interval_tree, min_score, max_score, has_score = self.process_link_file(self.properties['region'])
         if self.properties['line_width'] is None and not has_score:
@@ -182,6 +184,9 @@ file_type = {TRACK_TYPE}
                              "line_width has been set to "
                              "0.5.\n")
             self.properties['line_width'] = 0.5
+
+        if self.properties['scale_line_width'] is None and has_score:
+            self.properties['scale_line_width'] = 2
 
         self.colormap = None
         # check if the color given is a color map
@@ -212,7 +217,7 @@ file_type = {TRACK_TYPE}
             self.colormap = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
 
     def plot(self, ax, chrom_region, start_region, end_region):
-        self.max_height = 0
+        self.pos_height = 0
         self.neg_height = 0
         count = 0
         
@@ -348,7 +353,7 @@ file_type = {TRACK_TYPE}
             if self.properties['line_width'] is not None:
                 self.line_width = float(self.properties['line_width'])
             else:
-                self.line_width = 3 * abs(interval.data[4])
+                self.line_width = self.properties['scale_line_width'] * abs(interval.data[4])
             
             self.plot_bezier(ax, interval, idx, score_start, score_end)
             count += 1
@@ -357,7 +362,7 @@ file_type = {TRACK_TYPE}
         # radius plotted plus an small increase to avoid cropping of the arcs
         # this height might be removed
         self.neg_height *= 1.1
-        self.max_height *= 1.1
+        self.pos_height *= 1.1
         self.log.debug(f"{count} were links plotted")
         
         plot_ymin, plot_ymax = ax.get_ylim()
@@ -368,9 +373,9 @@ file_type = {TRACK_TYPE}
             ymin = min(plot_ymin, self.properties['min_value'], self.neg_height)
 
         if self.properties['max_value'] == None:
-            ymax = max(plot_ymax, self.max_height)
+            ymax = max(plot_ymax, self.pos_height)
         else:
-            ymax = max(plot_ymax, self.properties['max_value'], self.max_height)
+            ymax = max(plot_ymax, self.properties['max_value'], self.pos_height)
         
         ymax = transform(np.array([ymax]), self.properties['transform'],
                          self.properties['log_pseudocount'],
@@ -406,7 +411,7 @@ file_type = {TRACK_TYPE}
             rgb = self.properties['link_color']
 
         # Plot below x-axis
-        if idx % 3 != 0:
+        if idx % 2 != 0:
             pts = [(interval.begin, 0), (interval.begin, -height), (interval.end, -height), (interval.end, 0)]
             midpt = cubic_bezier(pts, 0.5)
             minpt = min([cubic_bezier(pts, x)[1] for x in np.arange(0, 1, 0.05)])
@@ -431,8 +436,8 @@ file_type = {TRACK_TYPE}
             
             midpt = cubic_bezier(pts, 0.5)
             maxpt = max([cubic_bezier(pts, x)[1] for x in np.arange(0, 1, 0.05)])
-            if maxpt > self.max_height:
-                self.max_height = maxpt
+            if maxpt > self.pos_height:
+                self.pos_height = maxpt
 
             pp1 = mpatches.PathPatch(Path(pts, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
                     fc="none", ec=self.properties['link_color'], lw=self.line_width, ls=self.properties['line_style'])
