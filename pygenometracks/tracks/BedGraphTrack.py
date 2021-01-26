@@ -140,16 +140,15 @@ file_type = {TRACK_TYPE}
                                  " requires to set the parameter"
                                  " second_file.")
             else:
-                if self.properties['second_file'].endswith(".bgz"):
+                # First try to open it as a Tabix file
+                try:
                     # from the tabix file is not possible to know the
                     # global min and max
-                    try:
-                        self.tbx2 = pysam.TabixFile(self.properties['second_file'])
-                    except IOError:
-                        self.interval_tree2, __, __ = file_to_intervaltree(self.properties['second_file'])
-                # load the file as an interval tree
-                else:
-                    self.interval_tree2, __, __ = file_to_intervaltree(self.properties['second_file'])
+                    self.tbx2 = pysam.TabixFile(self.properties['second_file'])
+                except IOError:
+                    # load the file as an interval tree
+                    self.interval_tree2, __, __ = file_to_intervaltree(self.properties['second_file'],
+                                                                       self.properties['region'])
 
     def set_properties_defaults(self):
         super(BedGraphTrack, self).set_properties_defaults()
@@ -162,7 +161,8 @@ file_type = {TRACK_TYPE}
 
         if 'second_file' in self.properties['operation'] and \
            self.properties['second_file'] is not None and \
-           self.properties['summary_method'] is None:
+           self.properties['summary_method'] is None and \
+           not self.properties['use_middle']:
             self.log.warning("When an operation is computed"
                              " between 2 files"
                              " a summary_method needs to be"
@@ -170,6 +170,7 @@ file_type = {TRACK_TYPE}
             self.properties['summary_method'] = 'mean'
 
         if self.properties['operation'] != 'file':
+            self.checkoperation()
             if self.properties['transform'] != 'no':
                 raise InputError("'operation' and 'transform' cannot be set at"
                                  " the same time.")
@@ -183,17 +184,13 @@ file_type = {TRACK_TYPE}
 
     def load_file(self):
         self.tbx = None
-        # try to load a tabix file is available
-        if self.properties['file'].endswith(".bgz"):
+        # try to load a tabix file if available
+        try:
             # from the tabix file is not possible to know the
             # global min and max
-            try:
-                self.tbx = pysam.TabixFile(self.properties['file'])
-            except IOError:
-                self.interval_tree, __, __ = file_to_intervaltree(self.properties['file'],
-                                                                  self.properties['region'])
-        # load the file as an interval tree
-        else:
+            self.tbx = pysam.TabixFile(self.properties['file'])
+        except IOError:
+            # load the file as an interval tree
             self.interval_tree, __, __ = file_to_intervaltree(self.properties['file'],
                                                               self.properties['region'])
 
@@ -235,7 +232,7 @@ file_type = {TRACK_TYPE}
                    return_nans=True, tbx_var='self.tbx', inttree_var='self.interval_tree'):
         """
         Retrieves the score (or scores or whatever fields are in a bedgraph like file) and the positions
-        for a given region.
+        for a given region. If return_nans is True the pos_list goes until at least end_region.
         In case there is no item in the region. It returns [], []
         Args:
             chrom_region:
@@ -243,7 +240,7 @@ file_type = {TRACK_TYPE}
             end_region:
         Returns:
             tuple:
-                scores_list, post_list
+                scores_list, pos_list
         """
         score_list = []
         pos_list = []
@@ -294,11 +291,17 @@ file_type = {TRACK_TYPE}
             score_list.append(values)
             pos_list.append((start, end))
 
+        # Add a last value if needed:
+        if prev_end < end_region and return_nans:
+            score_list.append(np.repeat(np.nan, self.num_fields))
+            pos_list.append((prev_end, end_region))
+
         return score_list, pos_list
 
     def plot(self, ax, chrom_region, start_region, end_region):
         score_list, pos_list = self.get_scores(chrom_region, start_region, end_region)
         if pos_list == []:
+            self.adjust_ylim(ax)
             return
         try:
             score_list = [float(x[0]) for x in score_list]
@@ -347,13 +350,67 @@ file_type = {TRACK_TYPE}
                                                      tbx_var='self.tbx2',
                                                      inttree_var='self.interval_tree2')
             if pos_list2 == []:
+                self.adjust_ylim(ax)
                 return
-            score_list2 = [float(x[0]) for x in score_list2]
-            score_list2, x_values2 = self.get_values_as_bigwig(score_list2,
-                                                               pos_list2,
-                                                               chrom_region,
-                                                               start_region,
-                                                               end_region)
+            try:
+                score_list2 = [float(x[0]) for x in score_list2]
+            except ValueError as ve:
+                if "could not convert string to float: 'NA'" in str(ve):
+                    self.log.warning("*Warning*\nNA were found in the bedgraph"
+                                     " will be replaced by nan.\n")
+                    score_list2 = [float(x[0]) if x[0] != 'NA' else float('nan') for x in score_list2]
+                else:
+                    raise ve
+            if self.properties['use_middle']:
+                x_values2 = np.asarray([(t[0] + t[1]) / 2
+                                        for i, t in enumerate(pos_list2)
+                                        if not np.isnan(score_list2[i])],
+                                       dtype=np.float)
+                score_list2 = np.asarray([x for x in score_list2 if not np.isnan(x)],
+                                         dtype=np.float)
+                if not all([x1 == x2 for x1, x2 in zip(x_values, x_values2)]):
+                    # The x are not compatible we need to extrapolate:
+                    new_x = sorted(np.unique(np.concatenate((x_values, x_values2), axis=0)))
+                    new_score_list = []
+                    i = 0
+                    new_score_list2 = []
+                    i2 = 0
+                    for x in new_x:
+                        if x_values[i] == x:
+                            new_score_list.append(score_list[i])
+                            i += 1
+                        elif i == 0:
+                            new_score_list.append(np.nan)
+                        elif i == len(score_list):
+                            new_score_list.append(np.nan)
+                        else:
+                            y1 = score_list[i - 1]
+                            y2 = score_list[i]
+                            x1 = x_values[i - 1]
+                            x2 = x_values[i]
+                            new_score_list.append(y1 + (y2 - y1) * (x - x1) / (x2 - x1))
+                        if x_values2[i2] == x:
+                            new_score_list2.append(score_list2[i2])
+                            i2 += 1
+                        elif i2 == 0:
+                            new_score_list.append(np.nan)
+                        elif i2 == len(score_list):
+                            new_score_list.append(np.nan)
+                        else:
+                            y1 = score_list2[i2 - 1]
+                            y2 = score_list2[i2]
+                            x1 = x_values2[i2 - 1]
+                            x2 = x_values2[i2]
+                            new_score_list2.append(y1 + (y2 - y1) * (x - x1) / (x2 - x1))
+                    x_values = np.array(new_x)
+                    score_list = new_score_list
+                    score_list2 = new_score_list2
+            else:
+                score_list2, x_values2 = self.get_values_as_bigwig(score_list2,
+                                                                   pos_list2,
+                                                                   chrom_region,
+                                                                   start_region,
+                                                                   end_region)
             # compute the operation
             try:
                 new_score_list = eval('[' + operation + ' for file,second_file in zip(score_list, score_list2)]')
@@ -377,26 +434,7 @@ file_type = {TRACK_TYPE}
                       self.properties['alpha'],
                       self.properties['grid'])
 
-        ymax = self.properties['max_value']
-        ymin = self.properties['min_value']
-        plot_ymin, plot_ymax = ax.get_ylim()
-        if ymax is None:
-            ymax = plot_ymax
-        else:
-            ymax = transform(np.array([ymax]), self.properties['transform'],
-                             self.properties['log_pseudocount'],
-                             'ymax')[0]
-        if ymin is None:
-            ymin = plot_ymin
-        else:
-            ymin = transform(np.array([ymin]), self.properties['transform'],
-                             self.properties['log_pseudocount'],
-                             'ymin')[0]
-
-        if self.properties['orientation'] == 'inverted':
-            ax.set_ylim(ymax, ymin)
-        else:
-            ax.set_ylim(ymin, ymax)
+        self.adjust_ylim(ax)
 
         if self.properties['rasterize']:
             ax.set_rasterized(True)

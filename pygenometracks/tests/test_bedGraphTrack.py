@@ -53,6 +53,63 @@ browser_tracks = """
 [x-axis]
 where = top
 
+[spacer]
+height = 0.05
+
+[test bedgraph use middle]
+file = GSM3182416_E12DHL_WT_Hoxd11vp.bedgraph.gz
+color = blue
+alpha = 0.5
+height = 5
+title = bedgraph with use_middle = true 2 files red and blue and minimum black
+min_value = 0
+max_value = 10
+use_middle = true
+
+[test bedgraph2 use middle]
+file = GSM3182415_E12PHL_WT_Hoxd11vp.bedgraph.gz
+color = red
+alpha = 0.5
+use_middle = true
+overlay_previous = share-y
+
+[test bedgraph min use middle]
+file = GSM3182415_E12PHL_WT_Hoxd11vp.bedgraph.gz
+second_file = GSM3182416_E12DHL_WT_Hoxd11vp.bedgraph.gz
+operation = min(file, second_file)
+color = black
+alpha = 1
+use_middle = true
+overlay_previous = share-y
+
+[diff use middle]
+file = GSM3182416_E12DHL_WT_Hoxd11vp.bedgraph.gz
+second_file = GSM3182415_E12PHL_WT_Hoxd11vp.bedgraph.gz
+operation = file - second_file
+color = blue
+negative_color = red
+alpha = 0.5
+height = 5
+title = bedgraph with use_middle = true difference
+min_value = -5
+max_value = 5
+use_middle = true
+
+
+[genes]
+file = HoxD_cluster_regulatory_regions_mm10.bed
+height = 3
+title = HoxD genes and regulatory regions
+
+"""
+with open(os.path.join(ROOT, "bedgraph_useMid_op.ini"), 'w') as fh:
+    fh.write(browser_tracks)
+
+
+browser_tracks = """
+[x-axis]
+where = top
+
 [test bedgraph neg]
 file = test_with_neg_values.bg.gz
 color = blue
@@ -214,6 +271,18 @@ height = 3
 with open(os.path.join(ROOT, "log1pm_bedgraph.ini"), 'w') as fh:
     fh.write(log1p_with_neg)
 
+
+bedgraph_end_not_covered = """
+[bedgraph]
+file = simple.bdg
+height = 3
+summary_method = max
+
+[x-axis]
+"""
+with open(os.path.join(ROOT, "bedgraph_end_not_covered.ini"), 'w') as fh:
+    fh.write(bedgraph_end_not_covered)
+
 tolerance = 13  # default matplotlib pixed difference tolerance
 
 
@@ -261,6 +330,22 @@ def test_plot_bedgraph_tracks_individual():
         os.remove(outfile.name)
 
 
+def test_plot_bedgraph_use_mid_op():
+    outfile = NamedTemporaryFile(suffix='.png', prefix='bdg_NA_', delete=False)
+    ini_file = os.path.join(ROOT, "bedgraph_useMid_op.ini")
+    region = "chr2:74000000-74800000"
+    expected_file = os.path.join(ROOT, 'master_bedgraph_useMid_op.png')
+    args = f"--tracks {ini_file} --region {region} "\
+           "--trackLabelFraction 0.2 --dpi 130 "\
+           f"--outFileName {outfile.name}".split()
+    pygenometracks.plotTracks.main(args)
+    res = compare_images(expected_file,
+                         outfile.name, tolerance)
+    assert res is None, res
+
+    os.remove(outfile.name)
+
+
 def test_plot_bedgraph_tracks_rasterize():
 
     outfile = NamedTemporaryFile(suffix='.pdf', prefix='pyGenomeTracks_test_',
@@ -268,6 +353,14 @@ def test_plot_bedgraph_tracks_rasterize():
     ini_file = os.path.join(ROOT, "bedgraph_useMid.ini")
     region = "chr2:73,800,000-75,744,000"
     expected_file = os.path.join(ROOT, 'master_bedgraph_useMid.pdf')
+    # matplotlib compare on pdf will create a png next to it.
+    # To avoid issues related to write in test_data folder
+    # We copy the expected file into a temporary place
+    new_expected_file = NamedTemporaryFile(suffix='.pdf',
+                                           prefix='pyGenomeTracks_test_',
+                                           delete=False)
+    os.system(f'cp {expected_file} {new_expected_file.name}')
+    expected_file = new_expected_file.name
     args = f"--tracks {ini_file} --region {region} "\
            "--trackLabelFraction 0.2 --width 38 --dpi 130 "\
            f"--outFileName {outfile.name}".split()
@@ -419,3 +512,19 @@ def test_bedgraph_neg_log1p():
 
     os.remove(ini_file)
     os.remove(os.path.join(ROOT, "bedgraph_chrx_2e6_5e6_m.bg"))
+
+
+def test_bedgraph_end_not_covered():
+    region = "chr7:100-400"
+    outfile = NamedTemporaryFile(suffix='.png', prefix='bedgraph_end_not_covered_', delete=False)
+    args = "--tracks {ini} --region {region} --trackLabelFraction 0.2 " \
+           "--dpi 130 --outFileName {outfile}" \
+           "".format(ini=os.path.join(ROOT, "bedgraph_end_not_covered.ini"),
+                     outfile=outfile.name, region=region).split()
+    pygenometracks.plotTracks.main(args)
+    print("saving test to {}".format(outfile.name))
+    res = compare_images(os.path.join(ROOT, 'master_bedgraph_end_not_covered.png'),
+                         outfile.name, tolerance)
+    assert res is None, res
+
+    os.remove(outfile.name)

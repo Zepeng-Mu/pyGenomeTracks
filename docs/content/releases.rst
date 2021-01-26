@@ -4,6 +4,8 @@ Releases
 .. toctree::
    :maxdepth: 1
 
+   releases/3.6
+   releases/3.5.1
    releases/3.5
    releases/3.4
    releases/3.3
