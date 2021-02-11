@@ -136,7 +136,7 @@ The resulting plot `example.png` looks like this:
 
 ![](example_sashimi/example.png)
 
-This example shows a splicing QTL (sQTL) for gene *SP140*. The three tracks 0, 1, and 2 represents average RNA-seq coverage for individuals with 0, 1, and alternative allele (G) for SNP chr2:231091223. To generate similar plots on your data, you will need a custom script that calculate average coverage from a group of samples with the same genotype at a given position. Of course, you can also group samples by any other criteria that fits your needs, for instance combining by treatment and control.
+This example shows a splicing QTL (sQTL) for gene *SP140*. The three tracks 0, 1, and 2 represents average RNA-seq coverage for individuals with 0, 1, and 2 alternative allele (G) for SNP chr2:231091223. To generate similar plots on your data, you will need a custom script that calculate average coverage from a group of samples with the same genotype at a given position. Of course, you can also group samples by any other criteria that fits your needs, for instance combining by treatment and control.
 
 ## Showcase
 This tool has been used to generate Sashimi plots in published articles:
