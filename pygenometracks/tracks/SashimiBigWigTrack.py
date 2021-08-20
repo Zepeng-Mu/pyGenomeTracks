@@ -1,6 +1,6 @@
-from . GenomeTrack import GenomeTrack
+from .GenomeTrack import GenomeTrack
 import numpy as np
-from .. utilities import plot_coverage, InputError, transform, change_chrom_names, opener, to_string, change_chrom_names, temp_file_from_intersect
+from ..utilities import plot_coverage, InputError, transform, change_chrom_names, opener, to_string, change_chrom_names, temp_file_from_intersect
 import pyBigWig
 from intervaltree import IntervalTree, Interval
 import matplotlib
@@ -81,61 +81,76 @@ show_data_range = true
 file_type = {TRACK_TYPE}
     """
 
-    DEFAULTS_PROPERTIES = {'max_value': None,
-                           'min_value': None,
-                           'show_data_range': True,
-                           'orientation': None,
-                           'bw_color': DEFAULT_BIGWIG_COLOR,
-                           'link_color': DEFAULT_LINKS_COLOR,
-                           'negative_color': None,
-                           'alpha': 1,
-                           'nans_to_zeros': False,
-                           'summary_method': 'mean',
-                           'number_of_bins': 700,
-                           'type': 'fill',
-                           'transform': 'no',
-                           'log_pseudocount': 0,
-                           'y_axis_values': 'transformed',
-                           'second_file': None,
-                           'operation': 'bw_file',
-                           'grid': False,
-                           'line_width': None,
-                           'line_style': 'solid',
-                           'max_value': None,
-                           'min_value': None,
-                           'region': None,  # Cannot be set manually but is set by tracksClass
-                           'ylim': None,
-                           'use_middle': False,
-                           'scale_link_height': 0.5,
-                           'scale_line_width': 2}
+    DEFAULTS_PROPERTIES = {
+        'max_value': None,
+        'min_value': None,
+        'show_data_range': True,
+        'orientation': None,
+        'bw_color': DEFAULT_BIGWIG_COLOR,
+        'link_color': DEFAULT_LINKS_COLOR,
+        'negative_color': None,
+        'alpha': 1,
+        'nans_to_zeros': False,
+        'summary_method': 'mean',
+        'number_of_bins': 700,
+        'type': 'fill',
+        'transform': 'no',
+        'log_pseudocount': 0,
+        'y_axis_values': 'transformed',
+        'second_file': None,
+        'operation': 'bw_file',
+        'grid': False,
+        'line_width': None,
+        'line_style': 'solid',
+        'max_value': None,
+        'min_value': None,
+        'show_number': False,
+        'region': None,  # Cannot be set manually but is set by tracksClass
+        'ylim': None,
+        'use_middle': False,
+        'scale_link_height': 0.5,
+        'scale_line_width': 2
+    }
     NECESSARY_PROPERTIES = ['bw_file', 'link_file']
-    SYNONYMOUS_PROPERTIES = {'max_value': {'auto': None},
-                             'min_value': {'auto': None}}
-    POSSIBLE_PROPERTIES = {'orientation': [None, 'inverted'],
-                           'summary_method': ['mean', 'average', 'max', 'min',
-                                              'stdev', 'dev', 'coverage',
-                                              'cov', 'sum'],
-                           'transform': ['no', 'log', 'log1p', '-log', 'log2',
-                                         'log10'],
-                           'y_axis_values': ['original', 'transformed']}
-    BOOLEAN_PROPERTIES = ['nans_to_zeros', 'show_data_range', 'grid', 'use_middle']
-    STRING_PROPERTIES = ['bw_file', 'file_type', 'overlay_previous',
-                         'orientation', 'summary_method',
-                         'title', 'color', 'negative_color',
-                         'transform', 'y_axis_values',
-                         'type', 'second_file', 'operation',
-                         'link_file', 'line_style',
-                         'title', 'bw_color', 'link_color']
-    FLOAT_PROPERTIES = {'max_value': [- np.inf, np.inf],
-                        'min_value': [- np.inf, np.inf],
-                        'log_pseudocount': [- np.inf, np.inf],
-                        'alpha': [0, 1],
-                        'height': [0, np.inf],
-                        'fontsize': [0, np.inf],
-                        'line_width': [0, np.inf],
-                        'scale_link_height': [0, np.inf],
-                        'scale_line_width': [0, np.inf]}
+    SYNONYMOUS_PROPERTIES = {
+        'max_value': {
+            'auto': None
+        },
+        'min_value': {
+            'auto': None
+        }
+    }
+    POSSIBLE_PROPERTIES = {
+        'orientation': [None, 'inverted'],
+        'summary_method': [
+            'mean', 'average', 'max', 'min', 'stdev', 'dev', 'coverage', 'cov',
+            'sum'
+        ],
+        'transform': ['no', 'log', 'log1p', '-log', 'log2', 'log10'],
+        'y_axis_values': ['original', 'transformed']
+    }
+    BOOLEAN_PROPERTIES = [
+        'nans_to_zeros', 'show_data_range', 'grid', 'use_middle', 'show_number'
+    ]
+    STRING_PROPERTIES = [
+        'bw_file', 'file_type', 'overlay_previous', 'orientation',
+        'summary_method', 'title', 'color', 'negative_color', 'transform',
+        'y_axis_values', 'type', 'second_file', 'operation', 'link_file',
+        'line_style', 'title', 'bw_color', 'link_color'
+    ]
+    FLOAT_PROPERTIES = {
+        'max_value': [-np.inf, np.inf],
+        'min_value': [-np.inf, np.inf],
+        'log_pseudocount': [-np.inf, np.inf],
+        'alpha': [0, 1],
+        'height': [0, np.inf],
+        'fontsize': [0, np.inf],
+        'line_width': [0, np.inf],
+        'scale_link_height': [0, np.inf],
+        'scale_line_width': [0, np.inf]
+    }
     INTEGER_PROPERTIES = {'number_of_bins': [1, np.inf]}
+
     # The color can only be a color
     # negative_color can only be a color or None
 
@@ -171,11 +186,12 @@ file_type = {TRACK_TYPE}
                                  "'original' when 'transform' is used.\n"
                                  " It will be set as 'transformed'.\n")
                 self.properties['y_axis_values'] = 'transformed'
-        
+
         #FROM LINK
         self.pos_height = None
         self.neg_height = None
-        self.interval_tree, min_score, max_score, has_score = self.process_link_file(self.properties['region'])
+        self.interval_tree, min_score, max_score, has_score = self.process_link_file(
+            self.properties['region'])
         if self.properties['line_width'] is None and not has_score:
             self.log.warning("*WARNING* for section "
                              f"{self.properties['section_name']}"
@@ -190,7 +206,8 @@ file_type = {TRACK_TYPE}
 
         self.colormap = None
         # check if the color given is a color map
-        is_colormap = self.process_color('link_color', colormap_possible=True,
+        is_colormap = self.process_color('link_color',
+                                         colormap_possible=True,
                                          default_value_is_colormap=False)
         if is_colormap:
             if not has_score:
@@ -210,8 +227,7 @@ file_type = {TRACK_TYPE}
             if self.properties['max_value'] is not None:
                 max_score = self.properties['max_value']
 
-            norm = matplotlib.colors.Normalize(vmin=min_score,
-                                               vmax=max_score)
+            norm = matplotlib.colors.Normalize(vmin=min_score, vmax=max_score)
 
             cmap = matplotlib.cm.get_cmap(self.properties['link_color'])
             self.colormap = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
@@ -220,18 +236,19 @@ file_type = {TRACK_TYPE}
         self.pos_height = 0
         self.neg_height = 0
         count = 0
-        
+
         if chrom_region not in self.bw.chroms().keys():
             chrom_region_before = chrom_region
             chrom_region = change_chrom_names(chrom_region)
             if chrom_region not in self.bw.chroms().keys():
-                self.log.warning("*Warning*\nNeither " + chrom_region_before
-                                 + " nor " + chrom_region + " exists as a "
+                self.log.warning("*Warning*\nNeither " + chrom_region_before +
+                                 " nor " + chrom_region + " exists as a "
                                  "chromosome name inside the bigwig file. "
                                  "This will generate an empty track!!\n")
                 return
 
-        chrom_region = self.check_chrom_str_bytes(self.bw.chroms().keys(), chrom_region)
+        chrom_region = self.check_chrom_str_bytes(self.bw.chroms().keys(),
+                                                  chrom_region)
 
         # on rare occasions pyBigWig may throw an error, apparently caused by a corruption
         # of the memory. This only occurs when calling trackPlot from different
@@ -241,10 +258,15 @@ file_type = {TRACK_TYPE}
         while num_tries < 5:
             num_tries += 1
             try:
-                scores_per_bin = np.array(self.bw.stats(chrom_region, start_region,
-                                                        end_region, nBins=self.properties['number_of_bins'],
-                                                        type=self.properties['summary_method'])).astype(float)
-                if self.properties['nans_to_zeros'] and np.any(np.isnan(scores_per_bin)):
+                scores_per_bin = np.array(
+                    self.bw.stats(
+                        chrom_region,
+                        start_region,
+                        end_region,
+                        nBins=self.properties['number_of_bins'],
+                        type=self.properties['summary_method'])).astype(float)
+                if self.properties['nans_to_zeros'] and np.any(
+                        np.isnan(scores_per_bin)):
                     scores_per_bin[np.isnan(scores_per_bin)] = 0
             except Exception as e:
                 self.bw = pyBigWig.open(self.properties['bw_file'])
@@ -255,10 +277,12 @@ file_type = {TRACK_TYPE}
                 pass
             else:
                 if num_tries > 1:
-                    self.log.warning(f"After {num_tries} the scores could be computed.\n")
+                    self.log.warning(
+                        f"After {num_tries} the scores could be computed.\n")
                 break
 
-        x_values = np.linspace(start_region, end_region, self.properties['number_of_bins'])
+        x_values = np.linspace(start_region, end_region,
+                               self.properties['number_of_bins'])
         # compute the operation
         operation = self.properties['operation']
         # Substitute log by np.log to make it evaluable:
@@ -267,7 +291,8 @@ file_type = {TRACK_TYPE}
             pass
         elif 'second_file' not in operation:
             try:
-                new_scores_per_bin = eval('[' + operation + ' for file in scores_per_bin]')
+                new_scores_per_bin = eval('[' + operation +
+                                          ' for file in scores_per_bin]')
                 new_scores_per_bin = np.array(new_scores_per_bin)
             except Exception as e:
                 raise Exception("The operation in section "
@@ -282,9 +307,9 @@ file_type = {TRACK_TYPE}
                 chrom_region_before2 = chrom_region2
                 chrom_region2 = change_chrom_names(chrom_region2)
                 if chrom_region2 not in self.bw2.chroms().keys():
-                    self.log.warning("*Warning*\nNeither "
-                                     + chrom_region_before2 + " nor "
-                                     + chrom_region2 + " exists as a "
+                    self.log.warning("*Warning*\nNeither " +
+                                     chrom_region_before2 + " nor " +
+                                     chrom_region2 + " exists as a "
                                      "chromosome name inside the second bigwig"
                                      " file. This will generate an empty track"
                                      "!!\n")
@@ -298,10 +323,16 @@ file_type = {TRACK_TYPE}
             while num_tries < 5:
                 num_tries += 1
                 try:
-                    scores_per_bin2 = np.array(self.bw2.stats(chrom_region2, start_region,
-                                                              end_region, nBins=self.properties['number_of_bins'],
-                                                              type=self.properties['summary_method'])).astype(float)
-                    if self.properties['nans_to_zeros'] and np.any(np.isnan(scores_per_bin2)):
+                    scores_per_bin2 = np.array(
+                        self.bw2.stats(
+                            chrom_region2,
+                            start_region,
+                            end_region,
+                            nBins=self.properties['number_of_bins'],
+                            type=self.properties['summary_method'])).astype(
+                                float)
+                    if self.properties['nans_to_zeros'] and np.any(
+                            np.isnan(scores_per_bin2)):
                         scores_per_bin2[np.isnan(scores_per_bin2)] = 0
                 except Exception as e:
                     self.bw2 = pyBigWig.open(self.properties['second_file'])
@@ -313,12 +344,14 @@ file_type = {TRACK_TYPE}
                     pass
                 else:
                     if num_tries > 1:
-                        self.log.warning(f"After {num_tries} the scores could be computed.\n")
+                        self.log.warning(
+                            f"After {num_tries} the scores could be computed.\n"
+                        )
                     break
             # compute the operation
             try:
-                new_scores_per_bin = eval('[' + operation
-                                          + ' for file, second_file in'
+                new_scores_per_bin = eval('[' + operation +
+                                          ' for file, second_file in'
                                           ' zip(scores_per_bin,'
                                           ' scores_per_bin2)]')
                 new_scores_per_bin = np.array(new_scores_per_bin)
@@ -335,55 +368,58 @@ file_type = {TRACK_TYPE}
                                        self.properties['bw_file'])
 
         plot_coverage(ax, x_values, transformed_scores, self.plot_type,
-                      self.size,
-                      self.properties['bw_color'],
+                      self.size, self.properties['bw_color'],
                       self.properties['negative_color'],
-                      self.properties['alpha'],
-                      self.properties['grid'])
+                      self.properties['alpha'], self.properties['grid'])
 
         # PLOT LINK
-        arcs_in_region = sorted(self.interval_tree[chrom_region][start_region:end_region])
+        arcs_in_region = sorted(
+            self.interval_tree[chrom_region][start_region:end_region])
         for idx, interval in enumerate(arcs_in_region):
             # skip intervals whose start and end are outside the plotted region
             if interval.begin < start_region and interval.end > end_region:
                 continue
-            score_start = float(self.bw.values(chrom_region, interval.begin, interval.begin + 1)[0])
-            score_end = float(self.bw.values(chrom_region, interval.end, interval.end + 1)[0])
+            score_start = float(
+                self.bw.values(chrom_region, interval.begin,
+                               interval.begin + 1)[0])
+            score_end = float(
+                self.bw.values(chrom_region, interval.end,
+                               interval.end + 1)[0])
 
             if self.properties['line_width'] is not None:
                 self.line_width = float(self.properties['line_width'])
             else:
-                self.line_width = self.properties['scale_line_width'] * abs(interval.data[4])
-            
+                self.line_width = self.properties['scale_line_width'] * abs(
+                    interval.data[4])
+
+            self.show_number = self.properties['show_number']
             self.plot_bezier(ax, interval, idx, score_start, score_end)
             count += 1
-        
-        # the arc height is equal to the radius, the track height is the largest
-        # radius plotted plus an small increase to avoid cropping of the arcs
+
         # this height might be removed
         self.neg_height *= 1.1
         self.pos_height *= 1.1
         self.log.debug(f"{count} were links plotted")
-        
+
         plot_ymin, plot_ymax = ax.get_ylim()
 
         if self.properties['min_value'] == None:
             ymin = min(plot_ymin, self.neg_height)
         else:
-            ymin = min(plot_ymin, self.properties['min_value'], self.neg_height)
+            ymin = min(plot_ymin, self.properties['min_value'],
+                       self.neg_height)
 
         if self.properties['max_value'] == None:
             ymax = max(plot_ymax, self.pos_height)
         else:
-            ymax = max(plot_ymax, self.properties['max_value'], self.pos_height)
-        
+            ymax = max(plot_ymax, self.properties['max_value'],
+                       self.pos_height)
+
         ymax = transform(np.array([ymax]), self.properties['transform'],
-                         self.properties['log_pseudocount'],
-                         'ymax')[0]
+                         self.properties['log_pseudocount'], 'ymax')[0]
 
         ymin = transform(np.array([ymin]), self.properties['transform'],
-                         self.properties['log_pseudocount'],
-                         'ymin')[0]
+                         self.properties['log_pseudocount'], 'ymin')[0]
 
         if self.properties['orientation'] == 'inverted':
             ax.set_ylim(ymax, ymin)
@@ -391,17 +427,19 @@ file_type = {TRACK_TYPE}
             ax.set_ylim(ymin, ymax)
 
         return ax
-    
+
     def plot_bezier(self, ax, interval, idx, start_height, end_height):
         def cubic_bezier(pts, t):
-            b_x = (1 - t) ** 3 * pts[0][0] + 3 * t * (1 - t) ** 2 * pts[1][0] + 3 * t ** 2 * (1 - t) * pts[2][0] + t ** 3 * pts[3][0]
-            b_y = (1 - t) ** 3 * pts[0][1] + 3 * t * (1 - t) ** 2 * pts[1][1] + 3 * t ** 2 * (1 - t) * pts[2][1] + t ** 3 * pts[3][1]
-            return((b_x, b_y))
+            b_x = (1 - t)**3 * pts[0][0] + 3 * t * (1 - t)**2 * pts[1][
+                0] + 3 * t**2 * (1 - t) * pts[2][0] + t**3 * pts[3][0]
+            b_y = (1 - t)**3 * pts[0][1] + 3 * t * (1 - t)**2 * pts[1][
+                1] + 3 * t**2 * (1 - t) * pts[2][1] + t**3 * pts[3][1]
+            return ((b_x, b_y))
 
         width = (interval.end - interval.begin)
         if self.properties['scale_link_height'] == None:
             scale_link_height = 0.5
-        
+
         height = np.sqrt(width) * self.properties['scale_link_height']
         if self.colormap:
             # translate score field
@@ -412,44 +450,66 @@ file_type = {TRACK_TYPE}
 
         # Plot below x-axis
         if idx % 2 != 0:
-            pts = [(interval.begin, 0), (interval.begin, -height), (interval.end, -height), (interval.end, 0)]
+            pts = [(interval.begin, 0), (interval.begin, -height),
+                   (interval.end, -height), (interval.end, 0)]
             midpt = cubic_bezier(pts, 0.5)
-            minpt = min([cubic_bezier(pts, x)[1] for x in np.arange(0, 1, 0.05)])
+            minpt = min(
+                [cubic_bezier(pts, x)[1] for x in np.arange(0, 1, 0.05)])
             if minpt < self.neg_height:
                 self.neg_height = minpt
-            
-            pp1 = mpatches.PathPatch(Path(pts, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
-                    fc="none", ec=self.properties['link_color'], lw=self.line_width, ls=self.properties['line_style'])
+
+            pp1 = mpatches.PathPatch(Path(
+                pts, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
+                                     fc="none",
+                                     ec=self.properties['link_color'],
+                                     lw=self.line_width,
+                                     ls=self.properties['line_style'])
             ax.add_patch(pp1)
-            ax.text(midpt[0], midpt[1], round(interval.data[4], 3),
-            fontsize=self.properties['fontsize'], horizontalalignment='center',
-            verticalalignment='center',
-            bbox=dict(facecolor='white', edgecolor='none', pad=0))
-        # Plot above 
+            if self.show_number:
+                ax.text(midpt[0],
+                        midpt[1],
+                        round(interval.data[4], 3),
+                        fontsize=self.properties['fontsize'],
+                        horizontalalignment='center',
+                        verticalalignment='center',
+                        bbox=dict(facecolor='white', edgecolor='none', pad=0))
+        # Plot above
         else:
-            pts = [
-                (interval.begin, start_height),
-                (interval.begin, height + start_height),
-                (interval.end, height + end_height),
-                (interval.end, end_height)
-            ]
-            
+            pts = [(interval.begin, start_height),
+                   (interval.begin, height + start_height),
+                   (interval.end, height + end_height),
+                   (interval.end, end_height)]
+
             midpt = cubic_bezier(pts, 0.5)
-            maxpt = max([cubic_bezier(pts, x)[1] for x in np.arange(0, 1, 0.05)])
+            maxpt = max(
+                [cubic_bezier(pts, x)[1] for x in np.arange(0, 1, 0.05)])
             if maxpt > self.pos_height:
                 self.pos_height = maxpt
 
-            pp1 = mpatches.PathPatch(Path(pts, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
-                    fc="none", ec=self.properties['link_color'], lw=self.line_width, ls=self.properties['line_style'])
+            pp1 = mpatches.PathPatch(Path(
+                pts, [Path.MOVETO, Path.CURVE4, Path.CURVE4, Path.CURVE4]),
+                                     fc="none",
+                                     ec=self.properties['link_color'],
+                                     lw=self.line_width,
+                                     ls=self.properties['line_style'])
             ax.add_patch(pp1)
-            ax.text(midpt[0], midpt[1], round(interval.data[4], 3),
-            fontsize=self.properties['fontsize'], horizontalalignment='center',
-            verticalalignment='center',
-            bbox=dict(facecolor='white', edgecolor='none', pad=0))
+            if self.show_number:
+                ax.text(midpt[0],
+                        midpt[1],
+                        round(interval.data[4], 3),
+                        fontsize=self.properties['fontsize'],
+                        horizontalalignment='center',
+                        verticalalignment='center',
+                        bbox=dict(facecolor='white', edgecolor='none', pad=0))
 
     # This y axis does not show the negative part, which is only Sashimi links
-    def plot_y_axis(self, ax, plot_axis, transform='no', log_pseudocount=0,
-                    y_axis='tranformed', only_at_ticks=False):
+    def plot_y_axis(self,
+                    ax,
+                    plot_axis,
+                    transform='no',
+                    log_pseudocount=0,
+                    y_axis='tranformed',
+                    only_at_ticks=False):
         """
         Plot the scale of the y axis with respect to the plot_axis
         Args:
@@ -488,7 +548,7 @@ file_type = {TRACK_TYPE}
             elif transform == 'log1p':
                 return np.expm1(value)
             elif transform == '-log':
-                return np.exp(- value) - log_pseudocount
+                return np.exp(-value) - log_pseudocount
 
         ymin, ymax = plot_axis.get_ylim()
         ymin = 0
@@ -508,16 +568,25 @@ file_type = {TRACK_TYPE}
             #       │
             # tick1 ┘
             if ymin < ymax:
-                ticks_values = [t for t in plot_axis.get_yticks() if t <= ymax and t >= ymin]
+                ticks_values = [
+                    t for t in plot_axis.get_yticks()
+                    if t <= ymax and t >= ymin
+                ]
             else:
-                ticks_values = [t for t in plot_axis.get_yticks() if t >= ymax and t <= ymin]
+                ticks_values = [
+                    t for t in plot_axis.get_yticks()
+                    if t >= ymax and t <= ymin
+                ]
                 ticks_values.sort(reverse=True)
             labels_pos = ticks_values
             if transform == 'no' or y_axis == 'transformed':
                 ticks_labels = [value_to_str(t) for t in ticks_values]
             else:
                 # There is a transformation and we want to display original values
-                ticks_labels = [value_to_str(untransform(t, transform, log_pseudocount)) for t in ticks_values]
+                ticks_labels = [
+                    value_to_str(untransform(t, transform, log_pseudocount))
+                    for t in ticks_values
+                ]
         elif transform == 'no' or y_axis == 'transformed':
             # This is a linear scale
             # plot something that looks like this:
@@ -539,9 +608,11 @@ file_type = {TRACK_TYPE}
                     else:
                         ymid_str = f"{transform}({log_pseudocount} + x)"
 
-                ax.text(0, (ymax + ymin) / 2, ymid_str,
+                ax.text(0, (ymax + ymin) / 2,
+                        ymid_str,
                         verticalalignment='center',
-                        horizontalalignment='right', wrap=True)
+                        horizontalalignment='right',
+                        wrap=True)
         else:
             # There is a transformation and we want to display original values
             if ymin * ymax < 0:
@@ -556,7 +627,10 @@ file_type = {TRACK_TYPE}
             # ymin ┘
             ticks_values = [ymin + epsilon_pretty, ymid, ymax - epsilon_pretty]
             labels_pos = [ymin, ymid, ymax]
-            ticks_labels = [value_to_str(untransform(v, transform, log_pseudocount)) for v in [ymin, ymid, ymax]]
+            ticks_labels = [
+                value_to_str(untransform(v, transform, log_pseudocount))
+                for v in [ymin, ymid, ymax]
+            ]
 
         # The lower label should be verticalalignment='bottom'
         # if it corresponds to ymin
@@ -568,12 +642,17 @@ file_type = {TRACK_TYPE}
         else:
             v_al = 'center'
             adjusted_value = labels_pos[i]
-        ax.text(-0.2, adjusted_value, ticks_labels[i],
-                verticalalignment=v_al, horizontalalignment='right')
+        ax.text(-0.2,
+                adjusted_value,
+                ticks_labels[i],
+                verticalalignment=v_al,
+                horizontalalignment='right')
         x_pos = [0, 0.5]
         y_pos = [ticks_values[i]] * 2
         for i in range(1, len(ticks_values) - 1):
-            ax.text(-0.2, labels_pos[i], ticks_labels[i],
+            ax.text(-0.2,
+                    labels_pos[i],
+                    ticks_labels[i],
                     verticalalignment='center',
                     horizontalalignment='right')
             x_pos += [0.5, 0, 0.5]
@@ -587,8 +666,11 @@ file_type = {TRACK_TYPE}
             v_al = 'top'
         else:
             v_al = 'center'
-        ax.text(-0.2, labels_pos[i], ticks_labels[i],
-                verticalalignment=v_al, horizontalalignment='right')
+        ax.text(-0.2,
+                labels_pos[i],
+                ticks_labels[i],
+                verticalalignment=v_al,
+                horizontalalignment='right')
         x_pos += [0.5, 0]
         y_pos += [ticks_values[i]] * 2
 
@@ -611,9 +693,10 @@ file_type = {TRACK_TYPE}
         else:
             # To be sure we do not miss links we will intersect with bed with
             # only chromosomes used in plot_regions
-            plot_regions_adapted = [(chrom, 0, HUGE_NUMBER) for chrom, __, __ in plot_regions]
-            file_to_open = temp_file_from_intersect(self.properties['link_file'],
-                                                    plot_regions_adapted)
+            plot_regions_adapted = [(chrom, 0, HUGE_NUMBER)
+                                    for chrom, __, __ in plot_regions]
+            file_to_open = temp_file_from_intersect(
+                self.properties['link_file'], plot_regions_adapted)
 
         valid_intervals = 0
         interval_tree = {}
@@ -625,17 +708,21 @@ file_type = {TRACK_TYPE}
         for line in tqdm(file_h.readlines()):
             line_number += 1
             line = to_string(line)
-            if line.startswith('browser') or line.startswith('track') or line.startswith('#'):
+            if line.startswith('browser') or line.startswith(
+                    'track') or line.startswith('#'):
                 continue
             try:
-                chrom1, start1, end1, chrom2, start2, end2 = line.strip().split('\t')[:6]
+                chrom1, start1, end1, chrom2, start2, end2 = line.strip(
+                ).split('\t')[:6]
             except Exception as detail:
                 raise InputError('File not valid. The format is chrom1'
                                  ' start1, end1, '
                                  f'chrom2, start2, end2\nError: {detail}\n'
                                  f' in line\n {line}')
             if chrom1 != chrom2:
-                self.log.warning(f"Only links in same chromosome are used. Skipping line\n{line}\n")
+                self.log.warning(
+                    f"Only links in same chromosome are used. Skipping line\n{line}\n"
+                )
                 continue
 
             try:
@@ -650,8 +737,9 @@ file_type = {TRACK_TYPE}
                 start2 = int(start2)
                 end2 = int(end2)
             except ValueError as detail:
-                raise InputError(f"Error reading line: {line_number}. One of the fields is not "
-                                 f"an integer.\nError message: {detail}")
+                raise InputError(
+                    f"Error reading line: {line_number}. One of the fields is not "
+                    f"an integer.\nError message: {detail}")
 
             assert start1 <= end1, f"Error in line #{line_number}, end1 larger than start1 in {line}"
             assert start2 <= end2, f"Error in line #{line_number}, end2 larger than start2 in {line}"
@@ -660,8 +748,9 @@ file_type = {TRACK_TYPE}
                 try:
                     score = float(score)
                 except ValueError as detail:
-                    self.log.warning(f"Warning: reading line: {line}. The score is not valid {score} will not be used. "
-                                     f"\nError message: {detail}\n")
+                    self.log.warning(
+                        f"Warning: reading line: {line}. The score is not valid {score} will not be used. "
+                        f"\nError message: {detail}\n")
                     score = np.nan
                     has_score = False
                 else:
@@ -680,17 +769,22 @@ file_type = {TRACK_TYPE}
             if self.properties['use_middle']:
                 mid1 = (start1 + end1) / 2
                 mid2 = (start2 + end2) / 2
-                interval_tree[chrom1].add(Interval(mid1, mid2, [start1, end1, start2, end2, score]))
+                interval_tree[chrom1].add(
+                    Interval(mid1, mid2, [start1, end1, start2, end2, score]))
             else:
                 # each interval spans from the smallest start to the largest end
-                interval_tree[chrom1].add(Interval(start1, end2, [start1, end1, start2, end2, score]))
+                interval_tree[chrom1].add(
+                    Interval(start1, end2,
+                             [start1, end1, start2, end2, score]))
             valid_intervals += 1
 
         if valid_intervals == 0:
-            self.log.warning(f"No valid intervals were found in file {self.properties['link_file']}.\n")
+            self.log.warning(
+                f"No valid intervals were found in file {self.properties['link_file']}.\n"
+            )
 
         file_h.close()
-        return(interval_tree, min_score, max_score, has_score)
+        return (interval_tree, min_score, max_score, has_score)
 
     def __del__(self):
         self.bw.close()
