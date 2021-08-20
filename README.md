@@ -76,7 +76,7 @@ The `tracks` directory is the key folder here. This is where all the track class
 ### Copy SashimiBigwig track class to `tracks` folder
 Suppose you are in the folder for this cloned repo (NOT the installed PyGenomeTracks package):
 ```sh
-cp pygenometracks/tracks/SashimiBigwig.py <PyGenomeTracks installation path>/tracks/
+cp pygenometracks/tracks/SashimiBigwigTrack.py <PyGenomeTracks installation path>/tracks/
 ```
 ### Prepare input files
 In order to generate Sashimi plot, two types of files are needed.
@@ -98,20 +98,20 @@ The column names are: chr_intron_start, pos_start, pos_start, chr_intron_end, po
 ### Make a `.ini` file:
 An example section in the `.ini` file:
 ```
-title = 
+title =
 # Path to bigwig file
-bw_file = 
+bw_file =
 # Path to links file
-link_file = 
+link_file =
 height = 0.8
-bw_color = 
-number_of_bins = 
-max_value = 
+bw_color =
+number_of_bins =
+max_value =
 nans_to_zeros = true
 summary_method = mean
 show_data_range = true
-link_color = 
-line_style = 
+link_color =
+line_style =
 fontsize = 2
 # The link in Sashimi plot is a Bezier curve.
 # The height of the curve is calculated from the length of the intron.
@@ -121,6 +121,8 @@ scale_link_height = 1
 # But the absolute width is calculated from the supplied numbers, which can look too thin or too wide sometimes.
 # Use scale_line_width to scale the absolute line widths.
 # You may need to try several values to get a satisfying result.
+# Use this to tell pyGenomeTracks whether to print PSI on links
+show_number = false
 scale_line_width = 3
 file_type = sashimiBigWig
 ```
