@@ -148,4 +148,4 @@ This tool has been used to generate Sashimi plots in published articles:
 - Ebert, Peter, Peter A. Audano, Qihui Zhu, Bernardo Rodriguez-Martin, David Porubsky, Marc Jan Bonder, Arvis Sulovari, et al. 2021. “Haplotype-Resolved Diverse Human Genomes and Integrated Analysis of Structural Variation.” Science 372 (6537).
 
 ## Help
-If you are interested in using this extension but encountered a problem, you may send an [email](zepengmu@uchicago.edu).
+If you are interested in using this extension but encountered a problem, you may email zepengmu@uchicago.edu.
