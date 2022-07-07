@@ -142,3 +142,10 @@ This example shows a splicing QTL (sQTL) for gene *SP140*. The three tracks 0, 1
 
 ## Showcase
 This tool has been used to generate Sashimi plots in published articles:
+
+- Mu, Zepeng, Wei Wei, Benjamin Fair, Jinlin Miao, Ping Zhu, and Yang I. Li. 2021. “The Impact of Cell Type and Context-Dependent Regulatory Variants on Human Immune Traits.” Genome Biology 22 (1): 122. [Web](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02334-x)
+
+- Ebert, Peter, Peter A. Audano, Qihui Zhu, Bernardo Rodriguez-Martin, David Porubsky, Marc Jan Bonder, Arvis Sulovari, et al. 2021. “Haplotype-Resolved Diverse Human Genomes and Integrated Analysis of Structural Variation.” Science 372 (6537).
+
+## Help
+If you are interested in using this extension but encountered a problem, you may send an [email](zepengmu@uchicago.edu).
