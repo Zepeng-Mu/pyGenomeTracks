@@ -292,7 +292,7 @@ file_type = {TRACK_TYPE}
         elif 'second_file' not in operation:
             try:
                 new_scores_per_bin = eval('[' + operation +
-                                          ' for file in scores_per_bin]')
+                                          ' for bw_file in scores_per_bin]')
                 new_scores_per_bin = np.array(new_scores_per_bin)
             except Exception as e:
                 raise Exception("The operation in section "
@@ -351,7 +351,7 @@ file_type = {TRACK_TYPE}
             # compute the operation
             try:
                 new_scores_per_bin = eval('[' + operation +
-                                          ' for file, second_file in'
+                                          ' for bw_file, second_file in'
                                           ' zip(scores_per_bin,'
                                           ' scores_per_bin2)]')
                 new_scores_per_bin = np.array(new_scores_per_bin)
@@ -373,8 +373,7 @@ file_type = {TRACK_TYPE}
                       self.properties['alpha'], self.properties['grid'])
 
         # PLOT LINK
-        arcs_in_region = sorted(
-            self.interval_tree[chrom_region][start_region:end_region])
+        arcs_in_region = sorted(self.interval_tree[chrom_region][start_region:end_region])
         for idx, interval in enumerate(arcs_in_region):
             # skip intervals whose start and end are outside the plotted region
             if interval.begin < start_region and interval.end > end_region:
@@ -385,6 +384,12 @@ file_type = {TRACK_TYPE}
             score_end = float(
                 self.bw.values(chrom_region, interval.end,
                                interval.end + 1)[0])
+
+            if operation == "bw_file":
+                pass
+            else:
+                score_start = eval(f'[{operation} for bw_file in [score_start]]')[0]
+                score_end =  eval(f'[{operation} for bw_file in [score_end]]')[0]
 
             if self.properties['line_width'] is not None:
                 self.line_width = float(self.properties['line_width'])
@@ -397,11 +402,12 @@ file_type = {TRACK_TYPE}
             count += 1
 
         # this height might be removed
-        self.neg_height *= 1.1
-        self.pos_height *= 1.1
-        self.log.debug(f"{count} were links plotted")
+        self.neg_height *= 1
+        self.pos_height *= 1.05
+        self.log.debug(f"{count} links plotted")
 
         plot_ymin, plot_ymax = ax.get_ylim()
+        plot_ymax = eval(f'[{operation} for bw_file in [plot_ymax]]')[0]
 
         if self.properties['min_value'] == None:
             ymin = min(plot_ymin, self.neg_height)
@@ -417,6 +423,7 @@ file_type = {TRACK_TYPE}
 
         ymax = transform(np.array([ymax]), self.properties['transform'],
                          self.properties['log_pseudocount'], 'ymax')[0]
+
 
         ymin = transform(np.array([ymin]), self.properties['transform'],
                          self.properties['log_pseudocount'], 'ymin')[0]
@@ -708,12 +715,10 @@ file_type = {TRACK_TYPE}
         for line in tqdm(file_h.readlines()):
             line_number += 1
             line = to_string(line)
-            if line.startswith('browser') or line.startswith(
-                    'track') or line.startswith('#'):
+            if line.startswith('browser') or line.startswith('track') or line.startswith('#'):
                 continue
             try:
-                chrom1, start1, end1, chrom2, start2, end2 = line.strip(
-                ).split('\t')[:6]
+                chrom1, start1, end1, chrom2, start2, end2 = line.strip().split('\t')[:6]
             except Exception as detail:
                 raise InputError('File not valid. The format is chrom1'
                                  ' start1, end1, '
