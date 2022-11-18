@@ -16,7 +16,7 @@ Please refer to the original pyGenomeTracks paper:
 Fidel Ramírez, Vivek Bhardwaj, Laura Arrigoni, Kin Chung Lam, Björn A. Grüning, José Villaveces, Bianca Habermann, Asifa Akhtar & Thomas Manke. High-resolution TADs reveal DNA sequences underlying genome organization in flies. Nature Communications (2018) [doi:10.1038/s41467-017-02525-w](https://www.nature.com/articles/s41467-017-02525-w)
 
 ## Usage
-This fork contains a custom PyGenomeTracks class, SashimiBigwig, to generate Sashimi plots. Please note that other tools exist to generate Sashimi plots. The strength of this tools is to easily generate Sashimi plots based on the PyGenomeTracks infrastructure. This also means that you can plot Sashimi plots together with other tracks available in PyGenomeTracks (e.g. bed, bigwig and gtf). Unlike MISO, this tool does not rely on an annotation file to plot the Sashimi plot, which is ideal if you are using tools like LeafCutter.
+This fork contains a custom PyGenomeTracks class, SashimiBigwig, to generate Sashimi plots. Please note that other tools exist to generate Sashimi plots. The strength of this tool is to easily generate Sashimi plots based on the PyGenomeTracks infrastructure. This also means that you can plot Sashimi plots together with other tracks available in PyGenomeTracks (e.g. bed, bigwig and gtf). Unlike MISO, this tool does not rely on an annotation file to plot the Sashimi plot, which is ideal if you are using tools like LeafCutter.
 
 To use this tool:
 
@@ -71,7 +71,7 @@ Python packages are installed in a specific folder, depending whether you used `
 3 directories, 35 files
 ```
 
-The `tracks` directory is the key folder here. This is where all the track classes in PyGenomeTracks files are located. Track classes can only be recognized in the `.ini` file if the corresponding track class is located in this folder. This is also the place where we can put customized track classes. For more details see [here](https://pygenometracks.readthedocs.io/en/latest/content/adding-new-tracks.html).
+The `tracks` directory is the key folder here. This is where all the track classes in PyGenomeTracks are located. Track classes can only be recognized in the `.ini` file if the corresponding track class is located in this folder. This is also the place where we can put customized track classes. For more details see [here](https://pygenometracks.readthedocs.io/en/latest/content/adding-new-tracks.html).
 
 ### Copy SashimiBigwig track class to `tracks` folder
 Suppose you are in the folder for this cloned repo (NOT the installed PyGenomeTracks package):
@@ -80,8 +80,8 @@ cp pygenometracks/tracks/SashimiBigwigTrack.py <PyGenomeTracks installation path
 ```
 ### Prepare input files
 In order to generate Sashimi plot, two types of files are needed.
-1. Bigwig files for RNA-seq coverage. These are just bigwig files that you would normally for the bigwig track class.
-2. Link files for junctions to plot and labels. This looks like the file for the original links track class, with an **additional** column at the end: the number on the label (could be the number of split reads supporting the junction or PSI calculated from a certain tool.) An example file looks like this:
+1. Bigwig files for RNA-seq coverage. These are just bigwig files that you would normally use for the bigwig track class.
+2. Link files for junctions and labels to plot. This looks like the file for the original links track class, with an **additional** column at the end: the number on the label (could be the number of split reads supporting the junction or PSI calculated from a certain tool.) An example file looks like this:
 ```
 chr2    231109786       231109786       chr2    231110578       231110578       0.0372936854616429
 chr2    231109786       231109786       chr2    231112631       231112631       0.0597340361211572
@@ -93,7 +93,7 @@ chr2    231110655       231110655       chr2    231113600       231113600       
 chr2    231112780       231112780       chr2    231113600       231113600       0.390030949667857
 ```
 
-The column names are: chr_intron_start, pos_start, pos_start, chr_intron_end, pos_end, pos_end, psi (this is just for you to understand the file, column names should not be included in the link file).
+The column names are: chr_intron_start, pos_start, pos_start, chr_intron_end, pos_end, pos_end, psi (this is just for you to understand the file, column names should **not** be included in the link file).
 
 ### Make a `.ini` file:
 An example section in the `.ini` file:
