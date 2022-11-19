@@ -1,5 +1,9 @@
 # This repository was forked from the original pyGenomeTracks with some modifications to plot Sashimi plots.
 
+## For installation, documentation and reference of pyGenomeTracks, please refer to the original pyGenomeTracks repo.
+
+## This branch is compatible with pgt 3.7.
+
 [![PyPI Version](https://img.shields.io/pypi/v/pyGenomeTracks.svg?style=plastic)](https://pypi.org/project/pyGenomeTracks/) [![bioconda-badge](https://img.shields.io/conda/vn/bioconda/pyGenomeTracks.svg?style=plastic)](https://anaconda.org/bioconda/pygenometracks)
 [![bioconda-badge](https://img.shields.io/badge/install%20with-bioconda-brightgreen.svg?style=plastic)](http://bioconda.github.io)
 [![Build Status on Azure](https://dev.azure.com/wolffj/pyGenomeTracks/_apis/build/status/deeptools.pyGenomeTracks?branchName=master)](https://dev.azure.com/wolffj/pyGenomeTracks/_build/latest?definitionId=2&branchName=master)
