@@ -1,19 +1,17 @@
 from .GenomeTrack import GenomeTrack
 import numpy as np
-from ..utilities import plot_coverage, InputError, transform, change_chrom_names, opener, to_string, change_chrom_names, temp_file_from_intersect
+from ..utilities import plot_coverage, InputError, transform, change_chrom_names, opener, to_string, change_chrom_names, temp_file_from_intersect, get_region
 import pyBigWig
 from intervaltree import IntervalTree, Interval
 import matplotlib
-import matplotlib.pyplot as plt
 import matplotlib.path as mpath
 import matplotlib.patches as mpatches
-from matplotlib.patches import Arc, Polygon
 from tqdm import tqdm
 
 Path = mpath.Path
 
 DEFAULT_LINKS_COLOR = 'blue'
-HUGE_NUMBER = 1e15  # Which should be above any chromosome size
+HUGE_NUMBER = int(1e9)  # Which should be above any chromosome size
 
 DEFAULT_BIGWIG_COLOR = '#33a02c'
 
@@ -78,6 +76,17 @@ show_data_range = true
 #y_axis_values = original
 # If you want to have a grid on the y-axis
 #grid = true
+# The link in Sashimi plot is a Bezier curve.
+# The height of the curve is calculated from the length of the intron.
+# When the y-axis in bigwig track is different, the height of curve needs to be scaled.
+scale_link_height = 1
+# The line width for links is proportion to the numbers at the last column in links file (PSI).
+# But the absolute width is calculated from the supplied numbers, which can look too thin or too wide sometimes.
+# Use scale_line_width to scale the absolute line widths.
+# You may need to try several values to get a satisfying result.
+# Use this to tell pyGenomeTracks whether to label PSI on links
+show_number = false
+scale_line_width = 3
 file_type = {TRACK_TYPE}
     """
 
@@ -98,7 +107,7 @@ file_type = {TRACK_TYPE}
         'log_pseudocount': 0,
         'y_axis_values': 'transformed',
         'second_file': None,
-        'operation': 'bw_file',
+        'operation': 'file',
         'grid': False,
         'line_width': None,
         'line_style': 'solid',
@@ -111,7 +120,7 @@ file_type = {TRACK_TYPE}
         'scale_link_height': 0.5,
         'scale_line_width': 2
     }
-    NECESSARY_PROPERTIES = ['bw_file', 'link_file']
+    NECESSARY_PROPERTIES = ['file', 'link_file']
     SYNONYMOUS_PROPERTIES = {
         'max_value': {
             'auto': None
@@ -133,7 +142,7 @@ file_type = {TRACK_TYPE}
         'nans_to_zeros', 'show_data_range', 'grid', 'use_middle', 'show_number'
     ]
     STRING_PROPERTIES = [
-        'bw_file', 'file_type', 'overlay_previous', 'orientation',
+        'file', 'file_type', 'overlay_previous', 'orientation',
         'summary_method', 'title', 'color', 'negative_color', 'transform',
         'y_axis_values', 'type', 'second_file', 'operation', 'link_file',
         'line_style', 'title', 'bw_color', 'link_color'
@@ -156,7 +165,7 @@ file_type = {TRACK_TYPE}
 
     def __init__(self, *args, **kwargs):
         super(self.__class__, self).__init__(*args, **kwargs)
-        self.bw = pyBigWig.open(self.properties['bw_file'])
+        self.bw = pyBigWig.open(self.properties['file'])
         self.bw2 = None
         if 'second_file' in self.properties['operation']:
             if self.properties['second_file'] is None:
@@ -175,7 +184,8 @@ file_type = {TRACK_TYPE}
             self.properties['negative_color'] = self.properties['bw_color']
         else:
             self.process_color('negative_color')
-        if self.properties['operation'] != 'bw_file':
+        if self.properties['operation'] != 'file':
+            self.checkoperation()
             if self.properties['transform'] != 'no':
                 raise InputError("'operation' and 'transform' cannot be set at"
                                  " the same time.")
@@ -237,62 +247,25 @@ file_type = {TRACK_TYPE}
         self.neg_height = 0
         count = 0
 
-        if chrom_region not in self.bw.chroms().keys():
-            chrom_region_before = chrom_region
-            chrom_region = change_chrom_names(chrom_region)
-            if chrom_region not in self.bw.chroms().keys():
-                self.log.warning("*Warning*\nNeither " + chrom_region_before +
-                                 " nor " + chrom_region + " exists as a "
-                                 "chromosome name inside the bigwig file. "
-                                 "This will generate an empty track!!\n")
-                return
+        temp_end_region, temp_nbins, scores_per_bin = self.get_scores('self.bw', self.properties['file'],
+                                                                      chrom_region, start_region, end_region)
+        if scores_per_bin is None:
+            self.log.warning("Scores could not be computed. This will generate an empty track\n")
+            return
 
-        chrom_region = self.check_chrom_str_bytes(self.bw.chroms().keys(),
-                                                  chrom_region)
+        if self.properties['nans_to_zeros'] and np.any(np.isnan(scores_per_bin)):
+            scores_per_bin[np.isnan(scores_per_bin)] = 0
 
-        # on rare occasions pyBigWig may throw an error, apparently caused by a corruption
-        # of the memory. This only occurs when calling trackPlot from different
-        # processors. Reloading the file solves the problem.
-        num_tries = 0
-        scores_per_bin = None
-        while num_tries < 5:
-            num_tries += 1
-            try:
-                scores_per_bin = np.array(
-                    self.bw.stats(
-                        chrom_region,
-                        start_region,
-                        end_region,
-                        nBins=self.properties['number_of_bins'],
-                        type=self.properties['summary_method'])).astype(float)
-                if self.properties['nans_to_zeros'] and np.any(
-                        np.isnan(scores_per_bin)):
-                    scores_per_bin[np.isnan(scores_per_bin)] = 0
-            except Exception as e:
-                self.bw = pyBigWig.open(self.properties['bw_file'])
-
-                self.log.warning("error found while reading bigwig scores "
-                                 f"({e}).\nTrying again."
-                                 f" Iter num: {num_tries}.\n")
-                pass
-            else:
-                if num_tries > 1:
-                    self.log.warning(
-                        f"After {num_tries} the scores could be computed.\n")
-                break
-
-        x_values = np.linspace(start_region, end_region,
-                               self.properties['number_of_bins'])
+        x_values = np.linspace(start_region, temp_end_region, temp_nbins)
         # compute the operation
         operation = self.properties['operation']
         # Substitute log by np.log to make it evaluable:
         operation = operation.replace('log', 'np.log')
-        if operation == 'bw_file':
+        if operation == 'file':
             pass
         elif 'second_file' not in operation:
             try:
-                new_scores_per_bin = eval('[' + operation +
-                                          ' for bw_file in scores_per_bin]')
+                new_scores_per_bin = eval('[' + operation + ' for file in scores_per_bin]')
                 new_scores_per_bin = np.array(new_scores_per_bin)
             except Exception as e:
                 raise Exception("The operation in section "
@@ -301,57 +274,23 @@ file_type = {TRACK_TYPE}
             else:
                 scores_per_bin = new_scores_per_bin
         else:
-            # Check the chrom
-            chrom_region2 = chrom_region
-            if chrom_region2 not in self.bw2.chroms().keys():
-                chrom_region_before2 = chrom_region2
-                chrom_region2 = change_chrom_names(chrom_region2)
-                if chrom_region2 not in self.bw2.chroms().keys():
-                    self.log.warning("*Warning*\nNeither " +
-                                     chrom_region_before2 + " nor " +
-                                     chrom_region2 + " exists as a "
-                                     "chromosome name inside the second bigwig"
-                                     " file. This will generate an empty track"
-                                     "!!\n")
-                    return
-            # get the scores
-            # on rare occasions pyBigWig may throw an error, apparently caused by a corruption
-            # of the memory. This only occurs when calling trackPlot from different
-            # processors. Reloading the file solves the problem.
-            num_tries = 0
-            scores_per_bin2 = None
-            while num_tries < 5:
-                num_tries += 1
-                try:
-                    scores_per_bin2 = np.array(
-                        self.bw2.stats(
-                            chrom_region2,
-                            start_region,
-                            end_region,
-                            nBins=self.properties['number_of_bins'],
-                            type=self.properties['summary_method'])).astype(
-                                float)
-                    if self.properties['nans_to_zeros'] and np.any(
-                            np.isnan(scores_per_bin2)):
-                        scores_per_bin2[np.isnan(scores_per_bin2)] = 0
-                except Exception as e:
-                    self.bw2 = pyBigWig.open(self.properties['second_file'])
+            temp_end_region2, temp_nbins2, scores_per_bin2 = self.get_scores('self.bw2', self.properties['second_file'],
+                                                                             chrom_region, start_region, end_region)
+            if scores_per_bin2 is None:
+                self.log.warning("Scores for second_file could not be computed. This will generate an empty track\n")
+                return
 
-                    self.log.warning("error found while reading bigwig scores"
-                                     " of second file"
-                                     f" ({e}).\nTrying again."
-                                     " Iter num: {num_tries}.\n")
-                    pass
-                else:
-                    if num_tries > 1:
-                        self.log.warning(
-                            f"After {num_tries} the scores could be computed.\n"
-                        )
-                    break
+            if self.properties['nans_to_zeros'] and np.any(np.isnan(scores_per_bin2)):
+                scores_per_bin2[np.isnan(scores_per_bin2)] = 0
+
+            x_values2 = np.linspace(start_region, temp_end_region2, temp_nbins2)
+            if not np.all(x_values == x_values2):
+                raise Exception('The two bigwig files are not compatible on this region:'
+                                f'{chrom_region}:{start_region}-{end_region}')
             # compute the operation
             try:
-                new_scores_per_bin = eval('[' + operation +
-                                          ' for bw_file, second_file in'
+                new_scores_per_bin = eval('[' + operation
+                                          + ' for file, second_file in'
                                           ' zip(scores_per_bin,'
                                           ' scores_per_bin2)]')
                 new_scores_per_bin = np.array(new_scores_per_bin)
@@ -365,12 +304,14 @@ file_type = {TRACK_TYPE}
         transformed_scores = transform(scores_per_bin,
                                        self.properties['transform'],
                                        self.properties['log_pseudocount'],
-                                       self.properties['bw_file'])
+                                       self.properties['file'])
 
         plot_coverage(ax, x_values, transformed_scores, self.plot_type,
-                      self.size, self.properties['bw_color'],
+                      self.size,
+                      self.properties['bw_color'],
                       self.properties['negative_color'],
-                      self.properties['alpha'], self.properties['grid'])
+                      self.properties['alpha'],
+                      self.properties['grid'])
 
         # PLOT LINK
         arcs_in_region = sorted(self.interval_tree[chrom_region][start_region:end_region])
@@ -385,11 +326,11 @@ file_type = {TRACK_TYPE}
                 self.bw.values(chrom_region, interval.end,
                                interval.end + 1)[0])
 
-            if operation == "bw_file":
+            if operation == "file":
                 pass
             else:
-                score_start = eval(f'[{operation} for bw_file in [score_start]]')[0]
-                score_end =  eval(f'[{operation} for bw_file in [score_end]]')[0]
+                score_start = eval(f'[{operation} for file in [score_start]]')[0]
+                score_end =  eval(f'[{operation} for file in [score_end]]')[0]
 
             if self.properties['line_width'] is not None:
                 self.line_width = float(self.properties['line_width'])
@@ -407,7 +348,7 @@ file_type = {TRACK_TYPE}
         self.log.debug(f"{count} links plotted")
 
         plot_ymin, plot_ymax = ax.get_ylim()
-        plot_ymax = eval(f'[{operation} for bw_file in [plot_ymax]]')[0]
+        plot_ymax = eval(f'[{operation} for file in [plot_ymax]]')[0]
 
         if self.properties['min_value'] == None:
             ymin = min(plot_ymin, self.neg_height)
@@ -791,7 +732,66 @@ file_type = {TRACK_TYPE}
         file_h.close()
         return (interval_tree, min_score, max_score, has_score)
 
+    def get_scores(self, bw_var, file, chrom_region, start_region, end_region):
+        bw = eval(bw_var)
+        scores_per_bin = None
+        if chrom_region not in bw.chroms().keys():
+            chrom_region_before = chrom_region
+            chrom_region = change_chrom_names(chrom_region)
+            if chrom_region not in bw.chroms().keys():
+                self.log.warning("*Warning*\nNeither " + chrom_region_before
+                                 + " nor " + chrom_region + " exists as a "
+                                 "chromosome name inside the bigwig file. "
+                                 "No score will be computed for"
+                                 f" {file}.\n")
+                scores_per_bin = np.array([np.nan] * self.properties['number_of_bins'])
+
+        if scores_per_bin is None and start_region > bw.chroms()[chrom_region]:
+            self.log.warning("*Warning*\nThe region to plot starts beyond the"
+                             " chromosome size. No score will be computed for"
+                             f" {file}.\n"
+                             f"{chrom_region} size: {bw.chroms()[chrom_region]}"
+                             f". Region to plot {start_region}-{end_region}\n")
+            scores_per_bin = np.array([np.nan] * self.properties['number_of_bins'])
+
+        if scores_per_bin is None and end_region > bw.chroms()[chrom_region]:
+            self.log.warning("*Warning*\nThe region to plot extends beyond the"
+                             " chromosome size. Please check.\n"
+                             f"{chrom_region} size: {bw.chroms()[chrom_region]}"
+                             f". Region to plot {start_region}-{end_region}\n")
+            temp_end_region = bw.chroms()[chrom_region]
+            temp_nbins = int(self.properties['number_of_bins'] * (temp_end_region - start_region) / (end_region - start_region))
+        else:
+            temp_end_region = end_region
+            temp_nbins = self.properties['number_of_bins']
+        # on rare occasions pyBigWig may throw an error, apparently caused by a corruption
+        # of the memory. This only occurs when calling trackPlot from different
+        # processors. Reloading the file solves the problem.
+        if scores_per_bin is None:
+            num_tries = 0
+            while num_tries < 5:
+                num_tries += 1
+                try:
+                    scores_per_bin = np.array(bw.stats(chrom_region, start_region,
+                                                       temp_end_region, nBins=temp_nbins,
+                                                       type=self.properties['summary_method'])).astype(float)
+                except Exception as e:
+                    bw = pyBigWig.open(self.properties['file'])
+
+                    self.log.warning("error found while reading bigwig scores "
+                                     f"({e}).\nTrying again."
+                                     f" Iter num: {num_tries}.\n")
+                    pass
+                else:
+                    if num_tries > 1:
+                        self.log.warning(f"After {num_tries} the scores could be computed.\n")
+                    break
+        return temp_end_region, temp_nbins, scores_per_bin
+
     def __del__(self):
-        self.bw.close()
+        try:
+            self.bw.close()
+        except AttributeError:
+            pass
         if self.bw2 is not None:
             self.bw2.close()
