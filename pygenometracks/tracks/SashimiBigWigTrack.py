@@ -247,13 +247,17 @@ file_type = {TRACK_TYPE}
         self.neg_height = 0
         count = 0
 
-        temp_end_region, temp_nbins, scores_per_bin = self.get_scores('self.bw', self.properties['file'],
-                                                                      chrom_region, start_region, end_region)
+        temp_end_region, temp_nbins, scores_per_bin = self.get_scores(
+            'self.bw', self.properties['file'], chrom_region, start_region,
+            end_region)
         if scores_per_bin is None:
-            self.log.warning("Scores could not be computed. This will generate an empty track\n")
+            self.log.warning(
+                "Scores could not be computed. This will generate an empty track\n"
+            )
             return
 
-        if self.properties['nans_to_zeros'] and np.any(np.isnan(scores_per_bin)):
+        if self.properties['nans_to_zeros'] and np.any(
+                np.isnan(scores_per_bin)):
             scores_per_bin[np.isnan(scores_per_bin)] = 0
 
         x_values = np.linspace(start_region, temp_end_region, temp_nbins)
@@ -265,7 +269,8 @@ file_type = {TRACK_TYPE}
             pass
         elif 'second_file' not in operation:
             try:
-                new_scores_per_bin = eval('[' + operation + ' for file in scores_per_bin]')
+                new_scores_per_bin = eval('[' + operation +
+                                          ' for file in scores_per_bin]')
                 new_scores_per_bin = np.array(new_scores_per_bin)
             except Exception as e:
                 raise Exception("The operation in section "
@@ -274,23 +279,29 @@ file_type = {TRACK_TYPE}
             else:
                 scores_per_bin = new_scores_per_bin
         else:
-            temp_end_region2, temp_nbins2, scores_per_bin2 = self.get_scores('self.bw2', self.properties['second_file'],
-                                                                             chrom_region, start_region, end_region)
+            temp_end_region2, temp_nbins2, scores_per_bin2 = self.get_scores(
+                'self.bw2', self.properties['second_file'], chrom_region,
+                start_region, end_region)
             if scores_per_bin2 is None:
-                self.log.warning("Scores for second_file could not be computed. This will generate an empty track\n")
+                self.log.warning(
+                    "Scores for second_file could not be computed. This will generate an empty track\n"
+                )
                 return
 
-            if self.properties['nans_to_zeros'] and np.any(np.isnan(scores_per_bin2)):
+            if self.properties['nans_to_zeros'] and np.any(
+                    np.isnan(scores_per_bin2)):
                 scores_per_bin2[np.isnan(scores_per_bin2)] = 0
 
-            x_values2 = np.linspace(start_region, temp_end_region2, temp_nbins2)
+            x_values2 = np.linspace(start_region, temp_end_region2,
+                                    temp_nbins2)
             if not np.all(x_values == x_values2):
-                raise Exception('The two bigwig files are not compatible on this region:'
-                                f'{chrom_region}:{start_region}-{end_region}')
+                raise Exception(
+                    'The two bigwig files are not compatible on this region:'
+                    f'{chrom_region}:{start_region}-{end_region}')
             # compute the operation
             try:
-                new_scores_per_bin = eval('[' + operation
-                                          + ' for file, second_file in'
+                new_scores_per_bin = eval('[' + operation +
+                                          ' for file, second_file in'
                                           ' zip(scores_per_bin,'
                                           ' scores_per_bin2)]')
                 new_scores_per_bin = np.array(new_scores_per_bin)
@@ -307,14 +318,13 @@ file_type = {TRACK_TYPE}
                                        self.properties['file'])
 
         plot_coverage(ax, x_values, transformed_scores, self.plot_type,
-                      self.size,
-                      self.properties['bw_color'],
+                      self.size, self.properties['bw_color'],
                       self.properties['negative_color'],
-                      self.properties['alpha'],
-                      self.properties['grid'])
+                      self.properties['alpha'], self.properties['grid'])
 
         # PLOT LINK
-        arcs_in_region = sorted(self.interval_tree[chrom_region][start_region:end_region])
+        arcs_in_region = sorted(
+            self.interval_tree[chrom_region][start_region:end_region])
         for idx, interval in enumerate(arcs_in_region):
             # skip intervals whose start and end are outside the plotted region
             if interval.begin < start_region and interval.end > end_region:
@@ -329,8 +339,9 @@ file_type = {TRACK_TYPE}
             if operation == "file":
                 pass
             else:
-                score_start = eval(f'[{operation} for file in [score_start]]')[0]
-                score_end =  eval(f'[{operation} for file in [score_end]]')[0]
+                score_start = eval(
+                    f'[{operation} for file in [score_start]]')[0]
+                score_end = eval(f'[{operation} for file in [score_end]]')[0]
 
             if self.properties['line_width'] is not None:
                 self.line_width = float(self.properties['line_width'])
@@ -365,7 +376,6 @@ file_type = {TRACK_TYPE}
         ymax = transform(np.array([ymax]), self.properties['transform'],
                          self.properties['log_pseudocount'], 'ymax')[0]
 
-
         ymin = transform(np.array([ymin]), self.properties['transform'],
                          self.properties['log_pseudocount'], 'ymin')[0]
 
@@ -377,6 +387,7 @@ file_type = {TRACK_TYPE}
         return ax
 
     def plot_bezier(self, ax, interval, idx, start_height, end_height):
+
         def cubic_bezier(pts, t):
             b_x = (1 - t)**3 * pts[0][0] + 3 * t * (1 - t)**2 * pts[1][
                 0] + 3 * t**2 * (1 - t) * pts[2][0] + t**3 * pts[3][0]
@@ -386,7 +397,7 @@ file_type = {TRACK_TYPE}
 
         width = (interval.end - interval.begin)
         if self.properties['scale_link_height'] == None:
-            scale_link_height = 0.5
+            scale_link_height = np.sqrt(width) * 0.5
 
         height = np.sqrt(width) * self.properties['scale_link_height']
         if self.colormap:
@@ -656,10 +667,12 @@ file_type = {TRACK_TYPE}
         for line in tqdm(file_h.readlines()):
             line_number += 1
             line = to_string(line)
-            if line.startswith('browser') or line.startswith('track') or line.startswith('#'):
+            if line.startswith('browser') or line.startswith(
+                    'track') or line.startswith('#'):
                 continue
             try:
-                chrom1, start1, end1, chrom2, start2, end2 = line.strip().split('\t')[:6]
+                chrom1, start1, end1, chrom2, start2, end2 = line.strip(
+                ).split('\t')[:6]
             except Exception as detail:
                 raise InputError('File not valid. The format is chrom1'
                                  ' start1, end1, '
@@ -739,28 +752,34 @@ file_type = {TRACK_TYPE}
             chrom_region_before = chrom_region
             chrom_region = change_chrom_names(chrom_region)
             if chrom_region not in bw.chroms().keys():
-                self.log.warning("*Warning*\nNeither " + chrom_region_before
-                                 + " nor " + chrom_region + " exists as a "
+                self.log.warning("*Warning*\nNeither " + chrom_region_before +
+                                 " nor " + chrom_region + " exists as a "
                                  "chromosome name inside the bigwig file. "
                                  "No score will be computed for"
                                  f" {file}.\n")
-                scores_per_bin = np.array([np.nan] * self.properties['number_of_bins'])
+                scores_per_bin = np.array([np.nan] *
+                                          self.properties['number_of_bins'])
 
         if scores_per_bin is None and start_region > bw.chroms()[chrom_region]:
-            self.log.warning("*Warning*\nThe region to plot starts beyond the"
-                             " chromosome size. No score will be computed for"
-                             f" {file}.\n"
-                             f"{chrom_region} size: {bw.chroms()[chrom_region]}"
-                             f". Region to plot {start_region}-{end_region}\n")
-            scores_per_bin = np.array([np.nan] * self.properties['number_of_bins'])
+            self.log.warning(
+                "*Warning*\nThe region to plot starts beyond the"
+                " chromosome size. No score will be computed for"
+                f" {file}.\n"
+                f"{chrom_region} size: {bw.chroms()[chrom_region]}"
+                f". Region to plot {start_region}-{end_region}\n")
+            scores_per_bin = np.array([np.nan] *
+                                      self.properties['number_of_bins'])
 
         if scores_per_bin is None and end_region > bw.chroms()[chrom_region]:
-            self.log.warning("*Warning*\nThe region to plot extends beyond the"
-                             " chromosome size. Please check.\n"
-                             f"{chrom_region} size: {bw.chroms()[chrom_region]}"
-                             f". Region to plot {start_region}-{end_region}\n")
+            self.log.warning(
+                "*Warning*\nThe region to plot extends beyond the"
+                " chromosome size. Please check.\n"
+                f"{chrom_region} size: {bw.chroms()[chrom_region]}"
+                f". Region to plot {start_region}-{end_region}\n")
             temp_end_region = bw.chroms()[chrom_region]
-            temp_nbins = int(self.properties['number_of_bins'] * (temp_end_region - start_region) / (end_region - start_region))
+            temp_nbins = int(self.properties['number_of_bins'] *
+                             (temp_end_region - start_region) /
+                             (end_region - start_region))
         else:
             temp_end_region = end_region
             temp_nbins = self.properties['number_of_bins']
@@ -772,9 +791,14 @@ file_type = {TRACK_TYPE}
             while num_tries < 5:
                 num_tries += 1
                 try:
-                    scores_per_bin = np.array(bw.stats(chrom_region, start_region,
-                                                       temp_end_region, nBins=temp_nbins,
-                                                       type=self.properties['summary_method'])).astype(float)
+                    scores_per_bin = np.array(
+                        bw.stats(
+                            chrom_region,
+                            start_region,
+                            temp_end_region,
+                            nBins=temp_nbins,
+                            type=self.properties['summary_method'])).astype(
+                                float)
                 except Exception as e:
                     bw = pyBigWig.open(self.properties['file'])
 
@@ -784,7 +808,9 @@ file_type = {TRACK_TYPE}
                     pass
                 else:
                     if num_tries > 1:
-                        self.log.warning(f"After {num_tries} the scores could be computed.\n")
+                        self.log.warning(
+                            f"After {num_tries} the scores could be computed.\n"
+                        )
                     break
         return temp_end_region, temp_nbins, scores_per_bin
 
