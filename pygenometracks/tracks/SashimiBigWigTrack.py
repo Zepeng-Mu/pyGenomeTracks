@@ -17,7 +17,7 @@ DEFAULT_BIGWIG_COLOR = '#33a02c'
 
 
 class SashimiBigWigTrack(GenomeTrack):
-    SUPPORTED_ENDINGS = ['.bw', '.bigwig', ".sashimi"]
+    SUPPORTED_ENDINGS = ['.bw', '.bigwig', '.bam', '.sashimi']
     TRACK_TYPE = 'sashimiBigWig'
     OPTIONS_TXT = GenomeTrack.OPTIONS_TXT + f"""
 color = #666666
@@ -346,8 +346,8 @@ file_type = {TRACK_TYPE}
             if self.properties['line_width'] is not None:
                 self.line_width = float(self.properties['line_width'])
             else:
-                self.line_width = self.properties['scale_line_width'] * abs(
-                    interval.data[4])
+                self.line_width = self.properties['scale_line_width'] * np.log(
+                    interval.data[4] + 1)
 
             self.show_number = self.properties['show_number']
             self.plot_bezier(ax, interval, idx, score_start, score_end)
@@ -397,7 +397,7 @@ file_type = {TRACK_TYPE}
 
         width = (interval.end - interval.begin)
         if self.properties['scale_link_height'] == None:
-            scale_link_height = np.sqrt(width) * 0.5
+            height = np.sqrt(width) * 2
 
         height = np.sqrt(width) * self.properties['scale_link_height']
         if self.colormap:
