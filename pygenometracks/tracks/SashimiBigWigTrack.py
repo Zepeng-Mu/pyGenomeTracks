@@ -117,8 +117,8 @@ file_type = {TRACK_TYPE}
         'region': None,  # Cannot be set manually but is set by tracksClass
         'ylim': None,
         'use_middle': False,
-        'scale_link_height': 0.5,
-        'scale_line_width': 2
+        'scale_link_height': 1,
+        'scale_line_width': 1,
     }
     NECESSARY_PROPERTIES = ['file', 'link_file']
     SYNONYMOUS_PROPERTIES = {
@@ -127,7 +127,7 @@ file_type = {TRACK_TYPE}
         },
         'min_value': {
             'auto': None
-        }
+        },
     }
     POSSIBLE_PROPERTIES = {
         'orientation': [None, 'inverted'],
@@ -180,6 +180,8 @@ file_type = {TRACK_TYPE}
         super(SashimiBigWigTrack, self).process_type_for_coverage_track()
         self.process_color('bw_color')
         self.process_color('link_color')
+        self.properties['scale_link_height'] = 1
+        self.properties['scale_line_width'] = 1
         if self.properties['negative_color'] is None:
             self.properties['negative_color'] = self.properties['bw_color']
         else:
@@ -322,6 +324,9 @@ file_type = {TRACK_TYPE}
                       self.properties['negative_color'],
                       self.properties['alpha'], self.properties['grid'])
 
+        plot_ymin, plot_ymax = ax.get_ylim()
+        plot_ymax = eval(f'[{operation} for file in [plot_ymax]]')[0]
+
         # PLOT LINK
         arcs_in_region = sorted(
             self.interval_tree[chrom_region][start_region:end_region])
@@ -347,19 +352,17 @@ file_type = {TRACK_TYPE}
                 self.line_width = float(self.properties['line_width'])
             else:
                 self.line_width = self.properties['scale_line_width'] * np.log(
-                    interval.data[4] + 1)
+                    interval.data[4] + 1) * 1.1
 
             self.show_number = self.properties['show_number']
-            self.plot_bezier(ax, interval, idx, score_start, score_end)
+            self.plot_bezier(ax, interval, idx, score_start, score_end,
+                             plot_ymax)
             count += 1
 
         # this height might be removed
         self.neg_height *= 1
         self.pos_height *= 1.05
         self.log.debug(f"{count} links plotted")
-
-        plot_ymin, plot_ymax = ax.get_ylim()
-        plot_ymax = eval(f'[{operation} for file in [plot_ymax]]')[0]
 
         if self.properties['min_value'] == None:
             ymin = min(plot_ymin, self.neg_height)
@@ -386,7 +389,7 @@ file_type = {TRACK_TYPE}
 
         return ax
 
-    def plot_bezier(self, ax, interval, idx, start_height, end_height):
+    def plot_bezier(self, ax, interval, idx, start_height, end_height, ymax):
 
         def cubic_bezier(pts, t):
             b_x = (1 - t)**3 * pts[0][0] + 3 * t * (1 - t)**2 * pts[1][
@@ -396,10 +399,8 @@ file_type = {TRACK_TYPE}
             return ((b_x, b_y))
 
         width = (interval.end - interval.begin)
-        if self.properties['scale_link_height'] == None:
-            height = np.sqrt(width) * 2
 
-        height = np.sqrt(width) * self.properties['scale_link_height']
+        height = ymax * 0.25 * self.properties['scale_link_height']
         if self.colormap:
             # translate score field
             # into a color
