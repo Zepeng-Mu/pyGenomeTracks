@@ -3,7 +3,7 @@
 
 from .GenomeTrack import GenomeTrack
 import numpy as np
-from ..utilities import plot_coverage, InputError, transform, change_chrom_names, opener, to_string, change_chrom_names, temp_file_from_intersect, get_region
+from ..utilities import plot_coverage, InputError, transform, change_chrom_names, opener, to_string, change_chrom_names, temp_file_from_intersect
 import pyBigWig
 from intervaltree import IntervalTree, Interval
 import matplotlib
