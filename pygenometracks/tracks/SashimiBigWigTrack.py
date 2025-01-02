@@ -1,4 +1,5 @@
 ## Authors: Zepeng Mu (zmu@broadinstitute.org) and Yang I. Li (yangili1@uchicago.edu)
+## Modified from pygenometracks/tracks/BigWigTrack.py
 
 from .GenomeTrack import GenomeTrack
 import numpy as np
@@ -358,7 +359,7 @@ file_type = {TRACK_TYPE}
                 self.line_width = float(self.properties['line_width'])
             else:
                 self.line_width = self.properties['scale_line_width'] * np.log(
-                    interval.data[4] + 1) * 1.1
+                    interval.data[4] + 1) * 1.5
 
             self.show_number = self.properties['show_number']
             self.plot_bezier(ax, interval, idx, score_start, score_end,
