@@ -1,3 +1,5 @@
+## Authors: Zepeng Mu (zmu@broadinstitute.org) and Yang I. Li (yangili1@uchicago.edu)
+
 from .GenomeTrack import GenomeTrack
 import numpy as np
 from ..utilities import plot_coverage, InputError, transform, change_chrom_names, opener, to_string, change_chrom_names, temp_file_from_intersect, get_region
@@ -84,9 +86,13 @@ scale_link_height = 1
 # But the absolute width is calculated from the supplied numbers, which can look too thin or too wide sometimes.
 # Use scale_line_width to scale the absolute line widths.
 # You may need to try several values to get a satisfying result.
-# Use this to tell pyGenomeTracks whether to label PSI on links
-show_number = false
+# Use this to scale Sashimi line width if the links are too thin or too wide.
 scale_line_width = 3
+# Set line_width if you do not want with of links to scale with PSI.
+# This overwrites scale_line_width.
+line_width = 2
+# Set this to true to label PSI on links
+show_number = false
 file_type = {TRACK_TYPE}
     """
 
