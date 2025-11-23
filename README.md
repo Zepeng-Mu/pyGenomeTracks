@@ -13,172 +13,142 @@
 pyGenomeTracks
 ==============
 
-Standalone program and library to plot beautiful genome browser tracks
-----------------------------------------------------------------------
-
-pyGenomeTracks aims to produce high-quality genome browser tracks that
-are highly customizable. Currently, it is possible to plot:
-
- * bigwig
- * bed/gtf (many options)
- * bedgraph
- * bedgraph matrices (like TAD-separation scores)
- * epilogos
- * narrow peaks
- * links (represented as arcs, triangles or squares)
- * Hi-C matrices (as triangle or squares)
- * fasta
- * maf (multiple alignment format)
-
-Here is a scheme which describe how pyGenomeTracks is working (graphical abstract of [Lopez-Delisle et al. 2020](https://doi.org/10.1093/bioinformatics/btaa692)):
-
-![pyGenomeTracks](https://github.com/deeptools/pyGenomeTracks/blob/b8918d43b0bd1ca9dd2939fdd0d93a5a297d0453/docs/content/images/graphicalabstract.png)
-
-pyGenomeTracks can make plots with or without Hi-C data. The following is an example output of
-pyGenomeTracks from [Ramírez et al. 2017](https://www.nature.com/articles/s41467-017-02525-w)
-
-![pyGenomeTracks example](https://github.com/deeptools/pyGenomeTracks/blob/b8918d43b0bd1ca9dd2939fdd0d93a5a297d0453/docs/content/images/hic_example_nat_comm_small.png)
-
-Table of content
-----------------
-
-* [Installation](#installation)
-* [Usage](#usage)
-* [Citation](#citation)
-* [Documentation](#documentation)
-* [External users](#external-users)
-
-Installation
-------------
-
-pyGenomeTracks works with python >=3.8.
-
-The recommended way to install pyGenomeTracks is via conda
-
-```bash
-conda create -n pygenometracks -c bioconda -c conda-forge pygenometracks
-```
-
-To get a specific version, one can specify it. For example:
-
-```bash
-conda create -n pygenometracks -c bioconda -c conda-forge pygenometracks=3.5 python=3.7
-```
-
-However, we noticed that conda installation can be quite slow so using mamba can help.
-You first need to create the environment and install mamba:
-
-```bash
-conda create -n pygenometracks -c bioconda -c conda-forge mamba python=3.9
-```
-
-Then activate the environment and install pygenometracks with mamba:
-
-```bash
-conda activate pygenometracks
-mamba install -c conda-forge -c bioconda pygenometracks
-```
-
-or if you want a specific version:
-
-```bash
-conda create -n pygenometracks -c bioconda -c conda-forge mamba python=3.7
-conda activate pygenometracks
-mamba install -c conda-forge -c bioconda pygenometracks=3.5
-```
-
-Also, pyGenomeTracks can be installed using pip
-
-```bash
-pip install pyGenomeTracks
-```
-
-Since version 3.5, pyGenomeTracks uses BEDTools, don't forget to install it or load it into your environment.
-
-Usage
------
-
-To run pyGenomeTracks a configuration file describing the tracks is required. The easiest way to create this file is using the program `make_tracks_file` which creates a configuration file with
-defaults that can be easily changed. The format is:
-
-```bash
-make_tracks_file --trackFiles <file1.bed> <file2.bw> ... -o tracks.ini
-```
-
-`make_tracks_file` uses the file ending to guess the file type.
-
-Then, a region can be plotted using:
-
-```bash
-pyGenomeTracks --tracks tracks.ini --region chr2:10,000,000-11,000,000 --outFileName nice_image.pdf
-```
-
-The ending `--outFileName` defines the image format. If `.pdf` is used, then the resulting image is a pdf. The options are pdf, png and svg.
-
-Description of other possible arguments:
-<!--- Start of possible arguments of pgt -->
-``` text
-options:
-  -h, --help            show this help message and exit
-  --tracks TRACKS       File containing the instructions to plot the tracks.
-                        The tracks.ini file can be genarated using the
-                        `make_tracks_file` program.
-  --region REGION       Region to plot, the format is chr:start-end
-  --BED BED             Instead of a region, a file containing the regions to
-                        plot, in BED format, can be given. If this is the
-                        case, multiple files will be created. It will use the
-                        value of --outFileName as a template and put the
-                        coordinates between the file name and the extension.
-  --width WIDTH         figure width in centimeters (default is 40)
-  --plotWidth PLOTWIDTH
-                        width in centimeters of the plotting (central) part
-  --height HEIGHT       Figure height in centimeters. If not given, the figure
-                        height is computed based on the heights of the tracks.
-                        If given, the track height are proportionally scaled
-                        to match the desired figure height.
-  --title TITLE, -t TITLE
-                        Plot title
-  --outFileName OUTFILENAME, -out OUTFILENAME
-                        File name to save the image, file prefix in case
-                        multiple images are stored
-  --fontSize FONTSIZE   Font size for the labels of the plot (default is 0.3 *
-                        figure width)
-  --dpi DPI             Resolution for the image in case the ouput is a raster
-                        graphics image (e.g png, jpg) (default is 72)
-  --trackLabelFraction TRACKLABELFRACTION
-                        By default the space dedicated to the track labels is
-                        0.05 of the plot width. This fraction can be changed
-                        with this parameter if needed.
-  --trackLabelHAlign {left,right,center}
-                        By default, the horizontal alignment of the track
-                        labels is left. This alignemnt can be changed to right
-                        or center.
-  --decreasingXAxis     By default, the x-axis is increasing. Use this option
-                        if you want to see all tracks with a decreasing
-                        x-axis.
-  --version             show program's version number and exit
-```
-<!--- End of possible arguments of pgt -->
-
-Citation
---------
-
-If you use pyGenomeTracks in your analysis, you can cite the following papers:
+## Citation
+Please refer to the original pyGenomeTracks paper:
 
 Fidel Ramírez, Vivek Bhardwaj, Laura Arrigoni, Kin Chung Lam, Björn A. Grüning, José Villaveces, Bianca Habermann, Asifa Akhtar & Thomas Manke. High-resolution TADs reveal DNA sequences underlying genome organization in flies. Nature Communications (2018) [doi:10.1038/s41467-017-02525-w](https://www.nature.com/articles/s41467-017-02525-w)
 
-Lopez-Delisle L, Rabbani L, Wolff J, Bhardwaj V, Backofen R, Grüning B, Ramírez F, Manke T. pyGenomeTracks: reproducible plots for multivariate genomic data sets. Bioinformatics. 2020 Aug 3:btaa692. [doi: 10.1093/bioinformatics/btaa692](https://doi.org/10.1093/bioinformatics/btaa692). Epub ahead of print. PMID: 32745185.
+## Usage
+This fork contains a custom PyGenomeTracks class, SashimiBigwig, to generate Sashimi plots. Please note that other tools exist to generate Sashimi plots. The strength of this tool is to easily generate Sashimi plots based on the PyGenomeTracks infrastructure. This also means that you can plot Sashimi plots together with other tracks available in PyGenomeTracks (e.g. bed, bigwig and gtf). Unlike MISO, this tool does not rely on an annotation file to plot the Sashimi plot, which is ideal if you are using tools like LeafCutter.
 
-Documentation
--------------
+To use this tool:
 
-Our [documentation](http://pygenometracks.readthedocs.io/) provide [examples](http://pygenometracks.readthedocs.org/en/latest/content/examples.html), as well as the [full list of possible parameters](http://pygenometracks.readthedocs.org/en/latest/content/possible-parameters.html) and [guidelines for developers who would like to add a new track type](http://pygenometracks.readthedocs.org/en/latest/content/adding-new-tracks.html).
+### Install PyGenomeTracks
+Installation guides can be found in the original [PyGenomeTracks repository](https://github.com/deeptools/pyGenomeTracks) or [documentation](https://pygenometracks.readthedocs.io/en/latest/index.html).
 
-<!-- I do not know what to do with that, is it External users?
-pyGenomeTracks is used by [HiCExporer](https://hicexplorer.readthedocs.io/) and [HiCBrowser](https://github.com/maxplanck-ie/HiCBrowser) (See e.g. [Chorogenome navigator](http://chorogenome.ie-freiburg.mpg.de/) which is made with HiCBrowser)
- -->
-External users
---------------
+### Clone this repo to your local computer.
+```sh
+$ git clone https://github.com/Zepeng-Mu/pyGenomeTracks.git
+```
 
-* [CoolBox](https://github.com/GangCaoLab/CoolBox) is an interactive genomic data explorer for Jupyter Notebooks
-* [Galaxy](https://usegalaxy.eu/root?tool_id=toolshed.g2.bx.psu.edu/repos/iuc/pygenometracks/pygenomeTracks) integration offers a graphical user-interface to create PGT plots. It is also possible to include PGT into workflows and automatic pipelines.
+### Figure out where your PyGenomeTracks package is installed.
+Python packages are installed in a specific folder, depending whether you used `pip` or `conda` to install the package. For example, on the high-performance computing system I'm using, the package is installed here: `~/.local/lib/python3.7/site-packages/pygenometracks/`. The structure of this folder looks like:
+```sh
+.
+├── getAllDefaultsAndPossible.py
+├── __init__.py
+├── makeTracksFile.py
+├── plotTracks.py
+├── __pycache__
+│   ├── getAllDefaultsAndPossible.cpython-37.pyc
+│   ├── __init__.cpython-37.pyc
+│   ├── makeTracksFile.cpython-37.pyc
+│   ├── plotTracks.cpython-37.pyc
+│   ├── readBed.cpython-37.pyc
+│   ├── readGtf.cpython-37.pyc
+│   ├── tracksClass.cpython-37.pyc
+│   ├── utilities.cpython-37.pyc
+│   └── _version.cpython-37.pyc
+├── readBed.py
+├── readGtf.py
+├── tracks
+│   ├── BedGraphMatrixTrack.py
+│   ├── BedGraphTrack.py
+│   ├── BedTrack.py
+│   ├── BigWigTrack.py
+│   ├── EpilogosTrack.py
+│   ├── GenomeTrack.py
+│   ├── GtfTrack.py
+│   ├── HiCMatrixTrack.py
+│   ├── HLinesTrack.py
+│   ├── __init__.py
+│   ├── LinksTrack.py
+│   ├── NarrowPeakTrack.py
+│   ├── __pycache__
+│   ├── ScaleBarTrack.py
+│   └── TADsTrack.py
+├── tracksClass.py
+├── utilities.py
+└── _version.py
+
+3 directories, 35 files
+```
+
+The `tracks` directory is the key folder here. This is where all the track classes in PyGenomeTracks are located. Track classes can only be recognized in the `.ini` file if the corresponding track class is located in this folder. This is also the place where we can put customized track classes. For more details see [here](https://pygenometracks.readthedocs.io/en/latest/content/adding-new-tracks.html).
+
+### Copy SashimiBigwig track class to `tracks` folder
+Suppose you are in the folder for this cloned repo (NOT the installed PyGenomeTracks package):
+```sh
+cp pygenometracks/tracks/SashimiBigwigTrack.py <PyGenomeTracks installation path>/tracks/
+```
+### Prepare input files
+In order to generate Sashimi plot, two types of files are needed.
+1. Bigwig files for RNA-seq coverage. These are just bigwig files that you would normally use for the bigwig track class.
+2. Link files for junctions and labels to plot. This looks like the file for the original links track class, with an **additional** column at the end: the number on the label (could be the number of split reads supporting the junction or PSI calculated from a certain tool.) An example file looks like this:
+```
+chr2    231109786       231109786       chr2    231110578       231110578       0.0372936854616429
+chr2    231109786       231109786       chr2    231112631       231112631       0.0597340361211572
+chr2    231109795       231109795       chr2    231110578       231110578       0.178226805210714
+chr2    231109795       231109795       chr2    231112631       231112631       0.126256827523686
+chr2    231110655       231110655       chr2    231111964       231111964       0.0149937309749814
+chr2    231110655       231110655       chr2    231112631       231112631       0.195029646753571
+chr2    231110655       231110655       chr2    231113600       231113600       0.0239748059030143
+chr2    231112780       231112780       chr2    231113600       231113600       0.390030949667857
+```
+
+The column names are: chr_intron_start, pos_start, pos_start, chr_intron_end, pos_end, pos_end, psi (this is just for you to understand the file, column names should **not** be included in the link file).
+
+### Make a `.ini` file:
+An example section in the `.ini` file:
+```
+title =
+# Path to bigwig file
+file =
+# Path to links file
+link_file =
+height = 0.8
+bw_color =
+number_of_bins =
+max_value =
+nans_to_zeros = true
+summary_method = mean
+show_data_range = true
+link_color =
+line_style =
+fontsize = 2
+# The link in Sashimi plot is a Bezier curve.
+# The height of the curve is calculated from the length of the intron.
+# When the y-axis in bigwig track is different, the height of curve needs to be scaled.
+scale_link_height = 1
+# The line width for links is proportion to the numbers at the last column in links file (PSI).
+# But the absolute width is calculated from the supplied numbers, which can look too thin or too wide sometimes.
+# Use scale_line_width to scale the absolute line widths.
+# You may need to try several values to get a satisfying result.
+# Use this to tell pyGenomeTracks whether to label PSI on links
+show_number = false
+scale_line_width = 3
+file_type = sashimiBigWig
+```
+
+### Run `pygenometracks` as you normally do to generate the figure
+If you want to try the example provided, go to the cloned repo, then:
+```sh
+cd example_sashimi
+pyGenomeTracks --tracks chr2-231091223_231109786_231113600.ini --region chr2:231107879-231115507 -t 'chr2:231109786-231113600 (sQTL = 2:231091223, ALT=G)' --width 9 --trackLabelFraction 0.01 -out example.pdf --fontSize 4
+```
+
+The resulting plot `example.png` looks like this:
+
+![](example_sashimi/example.png)
+
+This example shows a splicing QTL (sQTL) for gene *SP140*. The three tracks 0, 1, and 2 represent average RNA-seq coverage for individuals with 0, 1, and 2 alternative alleles (G) for SNP chr2:231091223. To generate similar plots on your data, you will need a custom script that calculate average coverage from a group of samples with the same genotype at a given SNP. Of course, you can also group samples by any other criteria that fits your needs, for instance combining by treatment and control.
+
+## Showcase
+This tool has been used to generate Sashimi plots in published articles:
+
+- Mu, Zepeng, Wei Wei, Benjamin Fair, Jinlin Miao, Ping Zhu, and Yang I. Li. 2021. “The Impact of Cell Type and Context-Dependent Regulatory Variants on Human Immune Traits.” Genome Biology 22 (1): 122. [Web](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-021-02334-x)
+
+- Ebert, Peter, Peter A. Audano, Qihui Zhu, Bernardo Rodriguez-Martin, David Porubsky, Marc Jan Bonder, Arvis Sulovari, et al. 2021. “Haplotype-Resolved Diverse Human Genomes and Integrated Analysis of Structural Variation.” Science 372 (6537).
+
+## Help
+If you are interested in using this extension but encountered a problem, you may email zepengmu@uchicago.edu.
