@@ -52,17 +52,6 @@ summary_method = mean
 # type = points:0.5
 # set show_data_range to false to hide the text on the left showing the data range
 show_data_range = true
-# to compute operations on the fly on the file
-# or between 2 bigwig files
-# operation will be evaluated, it should contains file or
-# file and second_file,
-# we advice to use nans_to_zeros = true to avoid unexpected nan values
-#operation = 0.89 * file
-#operation = - file
-#operation = file - second_file
-#operation = log2((1 + file) / (1 + second_file))
-#operation = max(file, second_file)
-#second_file = path for the second file
 # To log transform your data you can also use transform and log_pseudocount:
 # For the transform values:
 # 'log1p': transformed_values = log(1 + initial_values)
@@ -113,8 +102,6 @@ file_type = {TRACK_TYPE}
         'transform': 'no',
         'log_pseudocount': 0,
         'y_axis_values': 'transformed',
-        'second_file': None,
-        'operation': 'file',
         'grid': False,
         'line_width': None,
         'line_style': 'solid',
@@ -151,7 +138,7 @@ file_type = {TRACK_TYPE}
     STRING_PROPERTIES = [
         'file', 'file_type', 'overlay_previous', 'orientation',
         'summary_method', 'title', 'color', 'negative_color', 'transform',
-        'y_axis_values', 'type', 'second_file', 'operation', 'link_file',
+        'y_axis_values', 'type', 'link_file',
         'line_style', 'title', 'bw_color', 'link_color'
     ]
     FLOAT_PROPERTIES = {
@@ -173,14 +160,6 @@ file_type = {TRACK_TYPE}
     def __init__(self, *args, **kwargs):
         super(self.__class__, self).__init__(*args, **kwargs)
         self.bw = pyBigWig.open(self.properties['file'])
-        self.bw2 = None
-        if 'second_file' in self.properties['operation']:
-            if self.properties['second_file'] is None:
-                raise InputError(f"operation: {self.properties['operation']}"
-                                 " requires to set the parameter"
-                                 " second_file.")
-            else:
-                self.bw2 = pyBigWig.open(self.properties['second_file'])
 
     def set_properties_defaults(self):
         super(SashimiBigWigTrack, self).set_properties_defaults()
@@ -193,18 +172,6 @@ file_type = {TRACK_TYPE}
             self.properties['negative_color'] = self.properties['bw_color']
         else:
             self.process_color('negative_color')
-        if self.properties['operation'] != 'file':
-            self.checkoperation()
-            if self.properties['transform'] != 'no':
-                raise InputError("'operation' and 'transform' cannot be set at"
-                                 " the same time.")
-            if self.properties['y_axis_values'] == 'original':
-                self.log.warning("*Warning* 'operation' is used and "
-                                 "'y_axis_values' was set to 'original'. "
-                                 "'y_axis_values' can only be set to "
-                                 "'original' when 'transform' is used.\n"
-                                 " It will be set as 'transformed'.\n")
-                self.properties['y_axis_values'] = 'transformed'
 
         #FROM LINK
         self.pos_height = None
@@ -270,56 +237,6 @@ file_type = {TRACK_TYPE}
             scores_per_bin[np.isnan(scores_per_bin)] = 0
 
         x_values = np.linspace(start_region, temp_end_region, temp_nbins)
-        # compute the operation
-        operation = self.properties['operation']
-        # Substitute log by np.log to make it evaluable:
-        operation = operation.replace('log', 'np.log')
-        if operation == 'file':
-            pass
-        elif 'second_file' not in operation:
-            try:
-                new_scores_per_bin = eval('[' + operation +
-                                          ' for file in scores_per_bin]')
-                new_scores_per_bin = np.array(new_scores_per_bin)
-            except Exception as e:
-                raise Exception("The operation in section "
-                                f"{self.properties['section_name']} could not "
-                                f"be computed: {e}")
-            else:
-                scores_per_bin = new_scores_per_bin
-        else:
-            temp_end_region2, temp_nbins2, scores_per_bin2 = self.get_scores(
-                'self.bw2', self.properties['second_file'], chrom_region,
-                start_region, end_region)
-            if scores_per_bin2 is None:
-                self.log.warning(
-                    "Scores for second_file could not be computed. This will generate an empty track\n"
-                )
-                return
-
-            if self.properties['nans_to_zeros'] and np.any(
-                    np.isnan(scores_per_bin2)):
-                scores_per_bin2[np.isnan(scores_per_bin2)] = 0
-
-            x_values2 = np.linspace(start_region, temp_end_region2,
-                                    temp_nbins2)
-            if not np.all(x_values == x_values2):
-                raise Exception(
-                    'The two bigwig files are not compatible on this region:'
-                    f'{chrom_region}:{start_region}-{end_region}')
-            # compute the operation
-            try:
-                new_scores_per_bin = eval('[' + operation +
-                                          ' for file, second_file in'
-                                          ' zip(scores_per_bin,'
-                                          ' scores_per_bin2)]')
-                new_scores_per_bin = np.array(new_scores_per_bin)
-            except Exception as e:
-                raise Exception("The operation in section "
-                                f"{self.properties['section_name']} could not "
-                                f"be computed: {e}")
-            else:
-                scores_per_bin = new_scores_per_bin
 
         transformed_scores = transform(scores_per_bin,
                                        self.properties['transform'],
@@ -332,7 +249,6 @@ file_type = {TRACK_TYPE}
                       self.properties['alpha'], self.properties['grid'])
 
         plot_ymin, plot_ymax = ax.get_ylim()
-        plot_ymax = eval(f'[{operation} for file in [plot_ymax]]')[0]
 
         # PLOT LINK
         arcs_in_region = sorted(
@@ -348,18 +264,11 @@ file_type = {TRACK_TYPE}
                 self.bw.values(chrom_region, interval.end,
                                interval.end + 1)[0])
 
-            if operation == "file":
-                pass
-            else:
-                score_start = eval(
-                    f'[{operation} for file in [score_start]]')[0]
-                score_end = eval(f'[{operation} for file in [score_end]]')[0]
-
             if self.properties['line_width'] is not None:
                 self.line_width = float(self.properties['line_width'])
             else:
                 self.line_width = self.properties['scale_line_width'] * np.log(
-                    interval.data[4] + 1) * 1.5
+                    interval.data[2] + 1) * 1.5
 
             self.show_number = self.properties['show_number']
             self.plot_bezier(ax, interval, idx, score_start, score_end,
@@ -411,7 +320,7 @@ file_type = {TRACK_TYPE}
         if self.colormap:
             # translate score field
             # into a color
-            rgb = self.colormap.to_rgba(interval.data[4])
+            rgb = self.colormap.to_rgba(interval.data[2])
         else:
             rgb = self.properties['link_color']
 
@@ -435,7 +344,7 @@ file_type = {TRACK_TYPE}
             if self.show_number:
                 ax.text(midpt[0],
                         midpt[1],
-                        round(interval.data[4], 3),
+                        round(interval.data[2], 3),
                         fontsize=self.properties['fontsize'],
                         horizontalalignment='center',
                         verticalalignment='center',
@@ -463,7 +372,7 @@ file_type = {TRACK_TYPE}
             if self.show_number:
                 ax.text(midpt[0],
                         midpt[1],
-                        round(interval.data[4], 3),
+                        round(interval.data[2], 3),
                         fontsize=self.properties['fontsize'],
                         horizontalalignment='center',
                         verticalalignment='center',
@@ -679,37 +588,28 @@ file_type = {TRACK_TYPE}
                     'track') or line.startswith('#'):
                 continue
             try:
-                chrom1, start1, end1, chrom2, start2, end2 = line.strip(
-                ).split('\t')[:6]
+                chrom, start, end, name, score, strand = line.strip().split('\t')[:6]
+                print(chrom, start, end, name, score, strand)
             except Exception as detail:
-                raise InputError('File not valid. The format is chrom1'
-                                 ' start1, end1, '
-                                 f'chrom2, start2, end2\nError: {detail}\n'
+                raise InputError('File not valid. The format is chrom'
+                                 ' start, end, name, score, strand\nError: {detail}\n'
                                  f' in line\n {line}')
-            if chrom1 != chrom2:
-                self.log.warning(
-                    f"Only links in same chromosome are used. Skipping line\n{line}\n"
-                )
-                continue
 
             try:
-                score = line.strip().split('\t')[6]
+                score = line.strip().split('\t')[4]
             except IndexError:
                 has_score = False
                 score = np.nan
 
             try:
-                start1 = int(start1)
-                end1 = int(end1)
-                start2 = int(start2)
-                end2 = int(end2)
+                start = int(start)
+                end = int(end)
             except ValueError as detail:
                 raise InputError(
                     f"Error reading line: {line_number}. One of the fields is not "
                     f"an integer.\nError message: {detail}")
 
-            assert start1 <= end1, f"Error in line #{line_number}, end1 larger than start1 in {line}"
-            assert start2 <= end2, f"Error in line #{line_number}, end2 larger than start2 in {line}"
+            assert start <= end, f"Error in line #{line_number}, end larger than start in {line}"
 
             if has_score:
                 try:
@@ -726,23 +626,13 @@ file_type = {TRACK_TYPE}
                     if score > max_score:
                         max_score = score
 
-            if chrom1 not in interval_tree:
-                interval_tree[chrom1] = IntervalTree()
+            if chrom not in interval_tree:
+                interval_tree[chrom] = IntervalTree()
 
-            if start2 < start1:
-                start1, start2 = start2, start1
-                end1, end2 = end2, end1
 
-            if self.properties['use_middle']:
-                mid1 = (start1 + end1) / 2
-                mid2 = (start2 + end2) / 2
-                interval_tree[chrom1].add(
-                    Interval(mid1, mid2, [start1, end1, start2, end2, score]))
-            else:
-                # each interval spans from the smallest start to the largest end
-                interval_tree[chrom1].add(
-                    Interval(start1, end2,
-                             [start1, end1, start2, end2, score]))
+            interval_tree[chrom].add(
+                Interval(start, end,
+                            [start, end, score]))
             valid_intervals += 1
 
         if valid_intervals == 0:
@@ -827,5 +717,3 @@ file_type = {TRACK_TYPE}
             self.bw.close()
         except AttributeError:
             pass
-        if self.bw2 is not None:
-            self.bw2.close()
