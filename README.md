@@ -84,19 +84,15 @@ cp pygenometracks/tracks/SashimiBigwigTrack.py <PyGenomeTracks installation path
 ### Prepare input files
 In order to generate Sashimi plot, two types of files are needed.
 1. Bigwig files for RNA-seq coverage. These are just bigwig files that you would normally use for the bigwig track class.
-2. Link files for junctions and labels to plot. This looks like the file for the original links track class, with an **additional** column at the end: the number on the label (could be the number of split reads supporting the junction or PSI calculated from a certain tool.) An example file looks like this:
+2. Link files for junctions and labels to plot. This is essentially BED6 format (such as the first six columns from regtools). An example file looks like this:
 ```
-chr2    231109786       231109786       chr2    231110578       231110578       0.0372936854616429
-chr2    231109786       231109786       chr2    231112631       231112631       0.0597340361211572
-chr2    231109795       231109795       chr2    231110578       231110578       0.178226805210714
-chr2    231109795       231109795       chr2    231112631       231112631       0.126256827523686
-chr2    231110655       231110655       chr2    231111964       231111964       0.0149937309749814
-chr2    231110655       231110655       chr2    231112631       231112631       0.195029646753571
-chr2    231110655       231110655       chr2    231113600       231113600       0.0239748059030143
-chr2    231112780       231112780       chr2    231113600       231113600       0.390030949667857
+chr2	231109795	231110578	link1	0.2372970970798	+
+chr2	231109795	231112631	link2	0.023623129827603	+
+chr2	231110655	231112631	link3	0.326657037385783	+
+chr2	231112780	231113600	link4	0.313684195593452	+
 ```
 
-The column names are: chr_intron_start, pos_start, pos_start, chr_intron_end, pos_end, pos_end, psi (this is just for you to understand the file, column names should **not** be included in the link file).
+The column names are: chr, pos_start, pos_end, pos_end, psi, strand (this is just for you to understand the file, column names should **not** be included in the link file).
 
 ### Make a `.ini` file:
 An example section in the `.ini` file:
